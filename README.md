@@ -10,14 +10,21 @@ Powered by **AniList GraphQL**, **Kitsu REST API**, **SQLite Incremental Storage
 
 Traditional anime exploration relies heavily on simple genre filters (e.g., "Action", "Romance") or superficial popularity rankings. This project employs unsupervised machine learning to uncover organic behavioral groupings, mapping anime into empirical, data-driven archetypes without artificial 1-to-1 label constraints.
 
-### 🌟 Key Enhancements in Iteration 2
-1. **Dual Storage Incremental Local Database**: Persistent storage in SQLite (`data/anime_catalog.db`) with automatic export synchronization to `data/raw_anime_data.json` for seamless offline demonstration.
-2. **Multi-Source Ingestion & Fallback**:
-   - **Primary**: AniList GraphQL API (rich tags, studios, score, popularity).
-   - **Secondary Fallback**: Kitsu JSON:API (`https://kitsu.io/api/edge/anime`), normalized to canonical schema.
-   - **Offline Fallback**: SQLite database + 55-item curated mock dataset.
-3. **API Ban Prevention & Polite Rate-Limiting**: Configurable inter-request throttling (`--rate-delay 0.6`) and incremental pagination tracking to gradually build up a large offline catalog without risking rate limits or bans.
-4. **Strict Empirical Archetype Engine**: Dropped rigid 1-to-1 Hungarian matching. Archetypes are now derived dynamically from true centroid coordinates across Recency, Acclaim, Reach, Cult Loyalty, and Thematic Focus.
+### 🌟 Key Enhancements in Iteration 3
+1. **Dynamic Cluster Scaling ($k$) with Database Volume**:
+   - The candidate search window $[k_{\min}(N), k_{\max}(N)]$ and optimal cluster count dynamically adapt to database size $N$ using a sub-linear power-law heuristic:
+     $$k_{\text{target}}(N) = \text{clip}\left(\left\lfloor 1.15 \cdot N^{0.26} \right\rfloor, 3, 10\right), \quad k_{\min} = \max(2, k_{\text{target}} - 1), \quad k_{\max} = \min(N-1, 12, k_{\text{target}} + 1)$$
+   - Prevents over-fragmenting small datasets and coarse over-merging on large catalogs.
+2. **Multi-Step Incremental Database Ingestion & Verification Harness**:
+   - Dedicated benchmark runner (`scripts/demonstrate_scaling.py` / `python main.py --run-scaling-steps`) that validates scaling across 3 incremental database states:
+     - **Step 1 ($N_1 = 150$)**: Optimal $k = 3$ (Macro-archetypes)
+     - **Step 2 ($N_2 = 600$)**: Database incrementally expanded by 450 titles $\to$ Optimal $k = 5$
+     - **Step 3 ($N_3 = 1,998$)**: Database incrementally expanded to full catalog $\to$ Optimal $k = 7$
+   - Verifies monotonic growth ($k_1 \le k_2 \le k_3$) with zero duplicate archetype label collisions.
+3. **100% Collision-Free Archetype Disambiguation**:
+   - Hierarchical naming and secondary trait discriminators guarantee unique persona labels regardless of $k$.
+4. **Dual Storage Incremental Local Database**: Persistent storage in SQLite (`data/anime_catalog.db`, 1,998 titles) with automatic export synchronization to `data/raw_anime_data.json` for offline demonstration.
+5. **Multi-Source Ingestion & Fallback**: AniList GraphQL API with Kitsu JSON:API fallback and rate-delay throttling.
 
 ---
 
@@ -156,11 +163,24 @@ python main.py --samples 1000 --rate-delay 1.2
 python main.py --force-fetch --samples 500
 ```
 
+### Run Multi-Step Incremental Database Scaling Benchmark
+```bash
+python main.py --run-scaling-steps
+```
+
+### Run Adaptive Clustering (Auto-scaling k with dataset size)
+```bash
+python main.py --offline --adaptive-k
+```
+
 ### Available CLI Options
 | Flag | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
 | `--samples` | `int` | `500` | Target number of anime records to retrieve/analyze |
 | `--k` | `int` | `5` | Force specific number of K-Means clusters (set to `0` for auto-k) |
+| `--adaptive-k` | `flag` | `False` | Dynamically scale candidate $[k_{\min}, k_{\max}]$ and optimal $k$ based on sample size $N$ |
+| `--run-scaling-steps` | `flag` | `False` | Execute 3-step incremental DB scaling benchmark and generate progression report |
+| `--step-samples` | `str` | `150,600,1998` | Comma-separated sample slices for incremental benchmark |
 | `--source` | `str` | `auto` | Data source: `auto` (AniList -> Kitsu fallback), `anilist`, or `kitsu` |
 | `--rate-delay` | `float` | `0.6` | Polite inter-request delay (seconds) to prevent API bans |
 | `--db-path` | `path` | `data/anime_catalog.db` | Path to SQLite incremental database |
@@ -182,11 +202,11 @@ By avoiding rigid 1-to-1 Hungarian mapping, clusters are described by their true
 
 | Cluster | Discovered Empirical Archetype | Catalog Share | Median Year | Mean Score | Mean Popularity | Favorites Ratio | Defining Traits & Exemplars |
 | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| **0** | **Classics (Historical Favorites)** | 14.8% | 2008 | 79.4 | 225,000 | 0.048 | Influential foundational series (*Cowboy Bebop*, *Trigun*, *Princess Mononoke*). |
-| **1** | **Modern Hits (Contemporary Drama)** | 22.4% | 2020 | 81.2 | 310,000 | 0.038 | Modern character drama, comedy ensembles (*Dr. STONE*, *SPY x FAMILY*, *Oshi no Ko*). |
-| **2** | **Specialized Archetype (Drama Focus)** | 10.6% | 2016 | 82.5 | 260,000 | 0.041 | Acclaimed theatrical films and emotional narrative arcs (*A Silent Voice*, *Your Name.*). |
-| **3** | **Low-Profile (Commercial Mid-Tier & Long-Tail)** | 31.2% | 2017 | 69.5 | 195,000 | 0.017 | Commercial adaptations and sequels (*Tokyo Ghoul √A*, *High School DxD*). |
-| **4** | **Modern Hits (Blockbuster Drama & Action)** | 21.0% | 2019 | 83.1 | 510,000 | 0.045 | Massive mainstream shounen and dark fantasy (*Demon Slayer*, *Jujutsu Kaisen*). |
+| **0** | **Low-Profile (Commercial Mid-Tier & Long-Tail)** | 32.0% | 2018 | 67.7 | 91,905 | 0.014 | Long-tail sequels & adaptations (*The Promised Neverland S2*, *Shield Hero S2*). |
+| **1** | **Modern Hits (Contemporary Comedy)** | 31.3% | 2018 | 76.5 | 160,458 | 0.023 | Modern character comedy & action ensembles (*My Hero Academia S2*, *One Punch Man*). |
+| **2** | **Modern Hits (Blockbuster Drama)** | 20.7% | 2019 | 81.1 | 349,494 | 0.041 | Massive mainstream blockbusters (*Demon Slayer*, *JUJUTSU KAISEN*, *Tokyo Ghoul*). |
+| **3** | **Specialized Archetype (Drama Focus)** | 10.8% | 2016 | 79.5 | 158,348 | 0.029 | Theatrical emotional masterpieces (*A Silent Voice*, *Your Name.*, *Mugen Train*). |
+| **4** | **Classics (Legacy Masterworks - High Devotion)** | 5.2% | 2004 | 82.6 | 343,116 | 0.061 | High-devotion foundational masterworks (*Attack on Titan*, *Death Note*, *Hunter x Hunter*). |
 
 ---
 
@@ -197,7 +217,8 @@ Run the full pytest suite:
 uv run pytest -v
 ```
 
-13 automated tests across 6 modules validate:
+18 automated tests across 7 modules validate:
+- **`test_scaling.py`**: Monotonic $k$ scaling bounds, variable-$k$ profiling safety, 100% archetype uniqueness, and 3-step incremental SQLite growth.
 - **`test_database.py`**: SQLite initialization, upsert deduplication, and bidirectional JSON export/import.
 - **`test_data_fetcher.py`**: Multi-source querying, rate-limit backoff, offline mock fallback.
 - **`test_preprocessor.py`**: Imputation, StandardScaler, `Recency` calculation, and non-empty TF-IDF matrices.

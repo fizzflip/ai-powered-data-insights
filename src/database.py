@@ -95,8 +95,9 @@ class AnimeCatalogDB:
     @staticmethod
     def _normalize_record_id(record: Dict[str, Any], source_api: str) -> str:
         """Construct canonical composite ID for deduplication."""
+        src = str(record.get("source_api") or source_api).lower()
         raw_id = record.get("id")
-        return f"{source_api.lower()}:{raw_id}"
+        return f"{src}:{raw_id}"
 
     def upsert_records(
         self,
@@ -120,8 +121,9 @@ class AnimeCatalogDB:
         with self._get_connection() as conn:
             cursor = conn.cursor()
             for rec in records:
-                canon_id = self._normalize_record_id(rec, source_api)
-                ext_id = int(rec.get("id", 0))
+                rec_src = str(rec.get("source_api") or source_api)
+                canon_id = self._normalize_record_id(rec, rec_src)
+                ext_id = int(rec.get("id") or 0)
 
                 title = rec.get("title", {})
                 if isinstance(title, dict):
@@ -171,7 +173,7 @@ class AnimeCatalogDB:
                     """,
                     (
                         canon_id,
-                        source_api,
+                        rec_src,
                         ext_id,
                         t_romaji,
                         t_english,
@@ -233,7 +235,7 @@ class AnimeCatalogDB:
         }
         order_clause = valid_sorts.get(sort_by, "popularity DESC")
 
-        query = f"SELECT raw_json FROM anime_records ORDER BY {order_clause}"
+        query = f"SELECT raw_json, source_api FROM anime_records ORDER BY {order_clause}"
         params: List[Any] = []
         if limit is not None and limit > 0:
             query += " LIMIT ?"
@@ -245,7 +247,10 @@ class AnimeCatalogDB:
             cursor.execute(query, params)
             for row in cursor.fetchall():
                 try:
-                    records.append(json.loads(row["raw_json"]))
+                    item = json.loads(row["raw_json"])
+                    if isinstance(item, dict):
+                        item["source_api"] = row["source_api"]
+                    records.append(item)
                 except json.JSONDecodeError:
                     continue
 

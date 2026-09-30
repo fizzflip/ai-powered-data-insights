@@ -28,8 +28,9 @@ class PipelineConfig:
     """Configuration settings for the anime clustering pipeline."""
     num_samples: int = 500
     k: Optional[int] = 5
-    min_k: int = 2
-    max_k: int = 10
+    min_k: Optional[int] = None
+    max_k: Optional[int] = None
+    adaptive_k: bool = False
     dbscan_eps: float = 1.2
     dbscan_min_samples: int = 4
     cache_path: str = "data/raw_anime_data.json"
@@ -64,7 +65,7 @@ class InsightsPipeline:
 
     def run(self) -> Dict[str, Any]:
         """Execute all stages of the clustering pipeline."""
-        logger.info("=== Starting Anime Insights Pipeline (Iteration 2) ===")
+        logger.info("=== Starting Anime Insights Pipeline (Iteration 3) ===")
         os.makedirs(self.config.output_dir, exist_ok=True)
         os.makedirs(self.config.figures_dir, exist_ok=True)
 
@@ -96,13 +97,34 @@ class InsightsPipeline:
             len(preprocessed.feature_names),
         )
 
-        # Stage 3: Unsupervised Clustering & Strict Empirical Archetype Derivation
+        # Stage 3: Unsupervised Clustering & Adaptive Cluster Scaling
+        from src.clustering import compute_adaptive_k_range
+
+        use_adaptive = self.config.adaptive_k or self.config.k == 0 or self.config.k is None
+        cluster_k = None if use_adaptive else self.config.k
+
+        if use_adaptive:
+            calc_min, calc_max, target_k = compute_adaptive_k_range(len(df_raw))
+            eff_min = self.config.min_k if self.config.min_k is not None else calc_min
+            eff_max = self.config.max_k if self.config.max_k is not None else calc_max
+            logger.info(
+                "Adaptive k-selection enabled: candidate range [%d, %d] (target anchor: %d) for N=%d records.",
+                eff_min,
+                eff_max,
+                target_k,
+                len(df_raw),
+            )
+        else:
+            eff_min = self.config.min_k if self.config.min_k is not None else 2
+            eff_max = self.config.max_k if self.config.max_k is not None else 10
+
         logger.info("Stage 3: Running KMeans and DBSCAN clustering with empirical archetypes...")
         clustering: ClusteringResult = self.clusterer.run_clustering(
             preprocessed=preprocessed,
-            k=self.config.k,
-            min_k=self.config.min_k,
-            max_k=self.config.max_k,
+            k=cluster_k,
+            min_k=eff_min,
+            max_k=eff_max,
+            adaptive_k=use_adaptive,
             dbscan_eps=self.config.dbscan_eps,
             dbscan_min_samples=self.config.dbscan_min_samples,
         )
@@ -191,14 +213,21 @@ class InsightsPipeline:
             "",
             "---",
             "",
+        ]
+
+        k_eval_keys = sorted(clustering.elbow_inertias.keys())
+        min_eval_k = min(k_eval_keys) if k_eval_keys else 2
+        max_eval_k = max(k_eval_keys) if k_eval_keys else 10
+
+        lines.extend([
             "## 1. Optimal Number of Clusters & Silhouette Diagnostics",
-            "Cluster cohesion and separation were evaluated across candidate cluster counts $k \\in [2, 10]$:",
+            f"Cluster cohesion and separation were evaluated across candidate cluster counts $k \\in [{min_eval_k}, {max_eval_k}]$:",
             "",
             "| $k$ (Clusters) | Inertia ($WCSS$) | Silhouette Score | Archetype Alignment Status |",
             "|:--------------:|:----------------:|:----------------:|:--------------------------:|",
-        ]
+        ])
 
-        for k in sorted(clustering.elbow_inertias.keys()):
+        for k in k_eval_keys:
             inertia_val = f"{clustering.elbow_inertias[k]:.2f}"
             sil_val = f"{clustering.silhouette_scores.get(k, 0.0):.4f}" if k in clustering.silhouette_scores else "N/A"
             status = "Selected" if k == clustering.k_optimal else ("Global Maximum" if sil_val == max(f"{v:.4f}" for v in clustering.silhouette_scores.values()) else "")
@@ -207,9 +236,9 @@ class InsightsPipeline:
         lines.extend([
             "",
             "> [!NOTE]",
-            "> **Empirical vs. Global Silhouette Tradeoff**: While mathematical silhouette score peaks at lower $k$ (e.g. $k=3$), "
-            "evaluating $k=5$ yields balanced domain granularities separating Historical Classics, Modern Shounen Blockbusters, "
-            "Contemporary Ensemble Hits, Cult Acclaim, and Low-Profile productions without over-merging.",
+            "> **Adaptive Cluster Scaling & Parsimony Tradeoff**: The candidate search window scales dynamically with catalog volume. "
+            "Penalized silhouette scoring prevents premature saturation at coarse $k$ while rewarding relative inertia reduction, "
+            "allowing subtle sub-genres and era distinctions to surface as the database grows.",
             "",
             "---",
             "",
@@ -277,3 +306,7 @@ class InsightsPipeline:
 
         with open(output_file, "w", encoding="utf-8") as f:
             f.write("\n".join(lines))
+
+
+# Canonical alias for pipeline
+AnimePipeline = InsightsPipeline

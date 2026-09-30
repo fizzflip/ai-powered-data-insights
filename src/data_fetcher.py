@@ -852,7 +852,8 @@ class MultiSourceFetcher:
 
         # 5. Persist fetched records into SQLite & export to JSON
         if fetched_records:
-            self.db.upsert_records(fetched_records, source_api="api")
+            default_src = "anilist" if preferred_source == "auto" else preferred_source
+            self.db.upsert_records(fetched_records, source_api=default_src)
             self.db.export_to_json(self.cache_json_path)
 
         total_db = self.db.count_records()
@@ -884,6 +885,9 @@ class MultiSourceFetcher:
                 if not media:
                     break
 
+                for m in media:
+                    if isinstance(m, dict):
+                        m["source_api"] = "anilist"
                 results.extend(media)
                 self.db.update_fetch_page("anilist", page, len(media))
 
@@ -913,6 +917,9 @@ class MultiSourceFetcher:
                 if not items:
                     break
 
+                for it in items:
+                    if isinstance(it, dict):
+                        it["source_api"] = "kitsu"
                 results.extend(items)
                 page_num = (offset // 20) + 1
                 self.db.update_fetch_page("kitsu", page_num, len(items))

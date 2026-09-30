@@ -56,7 +56,12 @@ class ClusterVisualizer:
     ) -> Dict[int, Union[str, Tuple[float, ...]]]:
         """Generate consistent color mapping across cluster labels."""
         num_clusters = len(unique_labels)
-        palette = sns.color_palette(self.palette_name, max(num_clusters, 1))
+        if num_clusters > 20:
+            palette = sns.color_palette("husl", max(num_clusters, 1))
+        elif num_clusters > 10:
+            palette = sns.color_palette("tab20", max(num_clusters, 1))
+        else:
+            palette = sns.color_palette(self.palette_name, max(num_clusters, 1))
         color_map = {}
         for idx, lbl in enumerate(unique_labels):
             if lbl == -1:
@@ -371,7 +376,9 @@ class ClusterVisualizer:
         seed = random_state if random_state is not None else self.random_state
 
         n_samples = X_arr.shape[0]
-        effective_perp = min(perplexity, max(5.0, float(n_samples - 1) / 3.0))
+        effective_perp = min(perplexity, max(1.0, float(n_samples - 1) / 3.0))
+        if effective_perp >= n_samples:
+            effective_perp = max(1.0, float(n_samples - 1))
 
         max_pca_comp = min(50, n_samples - 1, X_arr.shape[1])
         if X_arr.shape[1] > 50 and max_pca_comp >= 2:

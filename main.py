@@ -50,14 +50,14 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--min-k",
         type=int,
-        default=2,
-        help="Minimum cluster count for Elbow and Silhouette evaluation",
+        default=None,
+        help="Minimum cluster count for Elbow and Silhouette evaluation (default: 2 or adaptive)",
     )
     parser.add_argument(
         "--max-k",
         type=int,
-        default=10,
-        help="Maximum cluster count for Elbow and Silhouette evaluation",
+        default=None,
+        help="Maximum cluster count for Elbow and Silhouette evaluation (default: 10 or adaptive)",
     )
     parser.add_argument(
         "--source",
@@ -112,6 +112,22 @@ def parse_arguments() -> argparse.Namespace:
         help="Directory to save analysis report and generated figures",
     )
     parser.add_argument(
+        "--adaptive-k",
+        action="store_true",
+        help="Dynamically scale candidate [min_k, max_k] and determine optimal k based on database sample size N",
+    )
+    parser.add_argument(
+        "--run-scaling-steps",
+        action="store_true",
+        help="Execute multi-step incremental database scaling benchmark and generate progression report",
+    )
+    parser.add_argument(
+        "--step-samples",
+        type=str,
+        default="150,600,1998",
+        help="Comma-separated sample sizes for multi-step scaling demonstration",
+    )
+    parser.add_argument(
         "--no-plots",
         action="store_true",
         help="Disable figure generation (fast text-only mode)",
@@ -124,14 +140,27 @@ def main() -> int:
     """Execute main CLI workflow."""
     args = parse_arguments()
 
+    if args.run_scaling_steps:
+        from scripts.demonstrate_scaling import run_incremental_scaling_demonstration
+        try:
+            sample_steps = [int(s.strip()) for s in args.step_samples.split(",") if s.strip()]
+        except ValueError as e:
+            logger.error("Invalid format for --step-samples. Expected comma-separated integers, got %r: %s", args.step_samples, e)
+            return 1
+        return run_incremental_scaling_demonstration(
+            sample_steps=sample_steps,
+            output_dir=args.output_dir,
+        )
+
     figures_dir = os.path.join(args.output_dir, "figures")
-    k_param = None if args.k == 0 else args.k
+    k_param = None if (args.k == 0 or args.adaptive_k) else args.k
 
     config = PipelineConfig(
         num_samples=args.samples,
         k=k_param,
         min_k=args.min_k,
         max_k=args.max_k,
+        adaptive_k=args.adaptive_k or args.k == 0,
         preferred_source=args.source,
         rate_limit_delay=args.rate_delay,
         db_path=args.db_path,

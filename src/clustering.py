@@ -30,6 +30,45 @@ class ClusteringResult:
     dbscan_n_noise: int
 
 
+
+def compute_adaptive_k_range(
+    n_samples: int,
+    min_allowed: int = 2,
+    max_allowed: int = 12,
+) -> Tuple[int, int, int]:
+    """
+    Dynamically determines a scale-appropriate candidate cluster range [min_k, max_k]
+    and target anchor k based on the dataset sample size N.
+
+    Formula:
+        k_target = clip(floor(1.15 * N^0.26), min_allowed + 1, max_allowed - 1)
+        min_k = max(min_allowed, k_target - 1)
+        max_k = min(n_samples - 1, max_allowed, k_target + 1)
+
+    :param n_samples: Number of samples in dataset.
+    :param min_allowed: Absolute floor for min_k (default: 2).
+    :param max_allowed: Absolute ceiling for max_k (default: 12).
+    :return: (min_k, max_k, target_k)
+    """
+    if n_samples < 4:
+        floor_val = max(1, min_allowed)
+        return (floor_val, max(floor_val, n_samples - 1), floor_val)
+
+    target = int(np.clip(
+        np.floor(1.15 * (float(n_samples) ** 0.26)),
+        min_allowed + 1,
+        max_allowed - 1,
+    ))
+
+    eff_min = max(min_allowed, target - 1)
+    eff_max = min(max_allowed, n_samples - 1, target + 1)
+
+    if eff_min > eff_max:
+        eff_min = eff_max
+
+    return (eff_min, eff_max, target)
+
+
 class AnimeClusterer:
     """
     Handles unsupervised clustering of anime data using KMeans and DBSCAN,
@@ -43,24 +82,43 @@ class AnimeClusterer:
         self.silhouette_scores_: Dict[int, float] = {}
         self.k_optimal_: int = 5
 
+    @staticmethod
+    def get_adaptive_k_range(n_samples: int) -> Tuple[int, int]:
+        """Convenience method returning (min_k, max_k) for n_samples."""
+        min_k, max_k, _ = compute_adaptive_k_range(n_samples)
+        return (min_k, max_k)
+
     def evaluate_k_range(
         self,
         X: np.ndarray,
-        min_k: int = 2,
-        max_k: int = 10,
+        min_k: Optional[int] = None,
+        max_k: Optional[int] = None,
+        adaptive: bool = False,
+        parsimony_penalty: float = 0.005,
     ) -> Tuple[int, Dict[int, float], Dict[int, float]]:
         """
-        Computes inertia and silhouette scores for each k.
-        Determines optimal k (highest silhouette or default 5).
+        Computes inertia and silhouette scores for candidate k values.
+        If adaptive=True, automatically determines candidate k range from dataset size N,
+        and selects optimal k using a parsimony-penalized silhouette score.
+        If adaptive=False, evaluates within [min_k, max_k] (defaults 2..10) and selects highest silhouette.
         """
         X_arr = np.asarray(X)
         n_samples = X_arr.shape[0]
 
+        if adaptive and (min_k is None or max_k is None):
+            calc_min, calc_max, target_k = compute_adaptive_k_range(n_samples)
+            eff_min_k = min_k if min_k is not None else calc_min
+            eff_max_k = max_k if max_k is not None else calc_max
+        else:
+            eff_min_k = min_k if min_k is not None else 2
+            eff_max_k = max_k if max_k is not None else 10
+            target_k = 5
+
+        eff_max_k = min(eff_max_k, n_samples - 1) if n_samples > 1 else 0
+        eff_min_k = min(eff_min_k, eff_max_k)
+
         elbow_inertias: Dict[int, float] = {}
         silhouette_scores: Dict[int, float] = {}
-
-        eff_max_k = min(max_k, n_samples - 1) if n_samples > 1 else 0
-        eff_min_k = min(min_k, eff_max_k)
 
         if eff_min_k >= 2 and eff_max_k >= eff_min_k:
             for k in range(eff_min_k, eff_max_k + 1):
@@ -76,10 +134,25 @@ class AnimeClusterer:
                 except Exception:
                     pass
 
-        if silhouette_scores:
-            optimal_k = max(silhouette_scores.items(), key=lambda item: item[1])[0]
+        if not silhouette_scores:
+            optimal_k = min(max(2, target_k), max(2, n_samples - 1))
+        elif adaptive and len(silhouette_scores) > 1:
+            # Score each candidate k with silhouette and parsimony penalty
+            k_keys = sorted(silhouette_scores.keys())
+            best_k = k_keys[0]
+            best_score = -float("inf")
+
+            for k in k_keys:
+                sil = silhouette_scores[k]
+                comp_penalty = parsimony_penalty * (k - eff_min_k)
+                j_score = sil - comp_penalty
+                if j_score > best_score:
+                    best_score = j_score
+                    best_k = k
+
+            optimal_k = best_k
         else:
-            optimal_k = 5
+            optimal_k = max(silhouette_scores.items(), key=lambda item: item[1])[0]
 
         self.elbow_inertias_ = elbow_inertias
         self.silhouette_scores_ = silhouette_scores
@@ -281,6 +354,45 @@ class AnimeClusterer:
                 top_tags=s["top_tags"],
             )
 
+        # Disambiguate duplicate archetype labels to guarantee 100% uniqueness
+        label_counts = Counter(archetype_labels.values())
+        if any(count > 1 for count in label_counts.values()):
+            for dup_label, count in label_counts.items():
+                if count <= 1:
+                    continue
+                colliding_cids = [cid for cid, lab in archetype_labels.items() if lab == dup_label]
+                for idx, cid in enumerate(colliding_cids):
+                    s = stats[cid]
+                    tags_list = [t.strip() for t in s["top_tags"].split(",") if t.strip()]
+                    genres_list = [g.strip() for g in s["top_genres"].split(",") if g.strip()]
+
+                    diff_trait = ""
+                    if len(tags_list) > idx:
+                        diff_trait = tags_list[idx]
+                    elif len(genres_list) > idx:
+                        diff_trait = genres_list[idx]
+                    elif tags_list:
+                        diff_trait = tags_list[0]
+                    else:
+                        diff_trait = f"Group {idx + 1}"
+
+                    if s["popularity"] >= pop_high:
+                        reach_trait = "High Reach"
+                    elif s["popularity"] <= pop_median:
+                        reach_trait = "Core Reach"
+                    else:
+                        reach_trait = "Broad Reach"
+
+                    archetype_labels[cid] = f"{dup_label} [{diff_trait} • {reach_trait}]"
+
+        # Final uniqueness guarantee fallback
+        seen_labels: set = set()
+        for cid in sorted(archetype_labels.keys()):
+            cur = archetype_labels[cid]
+            if cur in seen_labels:
+                archetype_labels[cid] = f"{cur} (Cluster {cid})"
+            seen_labels.add(archetype_labels[cid])
+
         profile_rows = []
         for cid in sorted(stats.keys()):
             s = stats[cid]
@@ -307,8 +419,9 @@ class AnimeClusterer:
         self,
         preprocessed: Any,
         k: Optional[int] = None,
-        min_k: int = 2,
-        max_k: int = 10,
+        min_k: Optional[int] = None,
+        max_k: Optional[int] = None,
+        adaptive_k: bool = False,
         dbscan_eps: float = 1.2,
         dbscan_min_samples: int = 4,
     ) -> ClusteringResult:
@@ -344,8 +457,9 @@ class AnimeClusterer:
             X=X_arr,
             min_k=min_k,
             max_k=max_k,
+            adaptive=adaptive_k,
         )
-        k_optimal = k if k is not None else opt_k
+        k_optimal = k if (k is not None and k > 0) else opt_k
 
         km_model = self.fit_kmeans(X_arr, k=k_optimal)
         kmeans_labels = km_model.labels_
@@ -378,8 +492,9 @@ class AnimeClusterer:
 def run_clustering(
     preprocessed: Any,
     k: Optional[int] = None,
-    min_k: int = 2,
-    max_k: int = 10,
+    min_k: Optional[int] = None,
+    max_k: Optional[int] = None,
+    adaptive_k: bool = False,
     dbscan_eps: float = 1.2,
     dbscan_min_samples: int = 4,
 ) -> ClusteringResult:
@@ -390,6 +505,7 @@ def run_clustering(
         k=k,
         min_k=min_k,
         max_k=max_k,
+        adaptive_k=adaptive_k,
         dbscan_eps=dbscan_eps,
         dbscan_min_samples=dbscan_min_samples,
     )

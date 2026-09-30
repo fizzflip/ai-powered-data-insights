@@ -5,114 +5,115 @@
 - **Data Architecture**: Dual-storage engine (SQLite `data/anime_catalog.db` with auto-sync to `data/raw_anime_data.json`)
 - **Multi-Source Support**: Primary AniList GraphQL API + Secondary Kitsu JSON:API fallback with polite rate-limiting
 - **Feature Dimensionality**: 73 engineered features (Continuous standard, categorical one-hot, multi-label genres, and TF-IDF tags)
-- **K-Means Cluster Count ($k$)**: 5
+- **K-Means Cluster Count ($k$)**: 7
 - **DBSCAN Density Structure**: 14 dense core clusters, 116 structural noise/outlier points
 
 ---
 
 ## 1. Optimal Number of Clusters & Silhouette Diagnostics
-Cluster cohesion and separation were evaluated across candidate cluster counts $k \in [2, 10]$:
+Cluster cohesion and separation were evaluated across candidate cluster counts $k \in [7, 9]$:
 
 | $k$ (Clusters) | Inertia ($WCSS$) | Silhouette Score | Archetype Alignment Status |
 |:--------------:|:----------------:|:----------------:|:--------------------------:|
-| 2 | 18836.54 | 0.1737 |  |
-| 3 | 16072.76 | 0.1928 | Global Maximum |
-| 4 | 15062.15 | 0.1190 |  |
-| 5 | 14484.68 | 0.1060 | Selected |
-| 6 | 13990.26 | 0.0963 |  |
-| 7 | 13604.50 | 0.0961 |  |
+| 7 | 13604.50 | 0.0961 | Selected |
 | 8 | 13245.62 | 0.0903 |  |
 | 9 | 12927.95 | 0.0857 |  |
-| 10 | 12617.16 | 0.0825 |  |
 
 > [!NOTE]
-> **Empirical vs. Global Silhouette Tradeoff**: While mathematical silhouette score peaks at lower $k$ (e.g. $k=3$), evaluating $k=5$ yields balanced domain granularities separating Historical Classics, Modern Shounen Blockbusters, Contemporary Ensemble Hits, Cult Acclaim, and Low-Profile productions without over-merging.
+> **Adaptive Cluster Scaling & Parsimony Tradeoff**: The candidate search window scales dynamically with catalog volume. Penalized silhouette scoring prevents premature saturation at coarse $k$ while rewarding relative inertia reduction, allowing subtle sub-genres and era distinctions to surface as the database grows.
 
 ---
 
 ## 2. Cluster Profiles Summary Table
 Quantitative feature means and dominant categorical traits across each discovered cluster archetype:
 
-|   cluster_id | archetype                                     |   size |   score |   mean_score |   popularity |   mean_popularity |   year |   median_year |   favorites_ratio |   mean_favorites_ratio | top_genres               | top_tags                                           |
-|--------------|-----------------------------------------------|--------|---------|--------------|--------------|-------------------|--------|---------------|-------------------|------------------------|--------------------------|----------------------------------------------------|
-|            0 | Low-Profile (Commercial Mid-Tier & Long-Tail) |    639 |   67.65 |        67.65 |     91904.80 |          91904.83 |   2018 |       2018.00 |              0.01 |                   0.01 | Comedy, Action, Fantasy  | Male Protagonist, Heterosexual, School             |
-|            1 | Modern Hits (Contemporary Comedy)             |    626 |   76.49 |        76.49 |    160458.10 |         160458.08 |   2018 |       2018.00 |              0.02 |                   0.02 | Comedy, Action, Drama    | Male Protagonist, Heterosexual, Female Protagonist |
-|            2 | Modern Hits (Blockbuster Drama)               |    414 |   81.08 |        81.08 |    349494.10 |         349494.13 |   2019 |       2019.00 |              0.04 |                   0.04 | Drama, Action, Comedy    | Male Protagonist, Tragedy, Ensemble Cast           |
-|            3 | Specialized Archetype (Drama Focus)           |    216 |   79.54 |        79.54 |    158347.90 |         158347.94 |   2016 |       2016.00 |              0.03 |                   0.03 | Drama, Action, Fantasy   | Male Protagonist, Female Protagonist, Tragedy      |
-|            4 | Classics (Legacy Masterworks - High Devotion) |    103 |   82.60 |        82.60 |    343116.00 |         343115.99 |   2004 |       2004.00 |              0.06 |                   0.06 | Action, Drama, Adventure | Male Protagonist, Tragedy, Philosophy              |
+|   cluster_id | archetype                                     |   size |   score |   mean_score |   popularity |   mean_popularity |   year |   median_year |   favorites_ratio |   mean_favorites_ratio | top_genres                     | top_tags                                            |
+|--------------|-----------------------------------------------|--------|---------|--------------|--------------|-------------------|--------|---------------|-------------------|------------------------|--------------------------------|-----------------------------------------------------|
+|            0 | Low-Profile (Commercial Mid-Tier & Long-Tail) |    511 |   66.16 |        66.16 |    101275.80 |         101275.83 |   2018 |       2018.00 |              0.01 |                   0.01 | Action, Fantasy, Comedy        | Male Protagonist, Female Harem, Magic               |
+|            1 | Specialized Archetype (Comedy Focus)          |    498 |   75.99 |        75.99 |    114959.40 |         114959.36 |   2018 |       2018.00 |              0.02 |                   0.02 | Comedy, Slice of Life, Romance | Male Protagonist, Female Protagonist, School        |
+|            2 | Modern Hits (Blockbuster Drama)               |    165 |   84.75 |        84.75 |    417592.70 |         417592.72 |   2018 |       2018.00 |              0.06 |                   0.06 | Drama, Action, Comedy          | Male Protagonist, Tragedy, Ensemble Cast            |
+|            3 | Specialized Archetype (Drama Focus)           |    175 |   78.33 |        78.33 |    124951.00 |         124951.01 |   2017 |       2017.00 |              0.02 |                   0.02 | Drama, Action, Fantasy         | Male Protagonist, Female Protagonist, Tragedy       |
+|            4 | Classics (Historical Favorites)               |    143 |   78.57 |        78.57 |    185361.30 |         185361.29 |   2005 |       2005.00 |              0.04 |                   0.04 | Action, Comedy, Drama          | Male Protagonist, Female Protagonist, Ensemble Cast |
+|            5 | Modern Hits (Blockbuster Action)              |    458 |   78.19 |        78.19 |    293278.40 |         293278.44 |   2018 |       2018.00 |              0.03 |                   0.03 | Action, Drama, Comedy          | Male Protagonist, Tragedy, Heterosexual             |
+|            6 | Classics (Legacy Masterworks - High Devotion) |     48 |   82.79 |        82.79 |    266864.40 |         266864.35 |   2001 |       2001.00 |              0.05 |                   0.05 | Drama, Fantasy, Adventure      | Female Protagonist, Male Protagonist, Tragedy       |
 
 ---
 
 ## 3. Detailed Empirical Archetype Findings
 ### Cluster 0: Low-Profile (Commercial Mid-Tier & Long-Tail)
-- **Cluster Size**: 639 titles (32.0% of catalog)
+- **Cluster Size**: 511 titles (25.6% of catalog)
 - **Median Release Year**: 2018
-- **Mean Average Score**: 67.65 / 100
-- **Mean Popularity**: 91,905 members
-- **Favorites-to-Popularity Ratio**: 0.0142
-- **Dominant Genres**: Comedy, Action, Fantasy
-- **Key Thematic Tags**: Male Protagonist, Heterosexual, School
-- **Representative Exemplar Titles**: The Promised Neverland Season 2, The Rising of the Shield Hero Season 2, Tokyo Ghoul:re 2, Boruto: Naruto Next Generations, How NOT to Summon a Demon Lord
+- **Mean Average Score**: 66.16 / 100
+- **Mean Popularity**: 101,276 members
+- **Favorites-to-Popularity Ratio**: 0.0138
+- **Dominant Genres**: Action, Fantasy, Comedy
+- **Key Thematic Tags**: Male Protagonist, Female Harem, Magic
+- **Representative Exemplar Titles**: The Promised Neverland Season 2, Tokyo Ghoul:re, Date A Live, The Rising of the Shield Hero Season 2, Is It Wrong to Try to Pick Up Girls in a Dungeon? II
 
-### Cluster 1: Modern Hits (Contemporary Comedy)
-- **Cluster Size**: 626 titles (31.3% of catalog)
+### Cluster 1: Specialized Archetype (Comedy Focus)
+- **Cluster Size**: 498 titles (24.9% of catalog)
 - **Median Release Year**: 2018
-- **Mean Average Score**: 76.49 / 100
-- **Mean Popularity**: 160,458 members
-- **Favorites-to-Popularity Ratio**: 0.0230
-- **Dominant Genres**: Comedy, Action, Drama
-- **Key Thematic Tags**: Male Protagonist, Heterosexual, Female Protagonist
-- **Representative Exemplar Titles**: My Hero Academia Season 2, One Punch Man, My Hero Academia Season 3, Sword Art Online II, Tokyo Ghoul √A
+- **Mean Average Score**: 75.99 / 100
+- **Mean Popularity**: 114,959 members
+- **Favorites-to-Popularity Ratio**: 0.0202
+- **Dominant Genres**: Comedy, Slice of Life, Romance
+- **Key Thematic Tags**: Male Protagonist, Female Protagonist, School
+- **Representative Exemplar Titles**: Attack on Titan Season 2, Attack on Titan Season 3, Attack on Titan Season 3 Part 2, DON'T TOY WITH ME, MISS NAGATORO, Assassination Classroom Second Season
 
 ### Cluster 2: Modern Hits (Blockbuster Drama)
-- **Cluster Size**: 414 titles (20.7% of catalog)
-- **Median Release Year**: 2019
-- **Mean Average Score**: 81.08 / 100
-- **Mean Popularity**: 349,494 members
-- **Favorites-to-Popularity Ratio**: 0.0406
+- **Cluster Size**: 165 titles (8.3% of catalog)
+- **Median Release Year**: 2018
+- **Mean Average Score**: 84.75 / 100
+- **Mean Popularity**: 417,593 members
+- **Favorites-to-Popularity Ratio**: 0.0627
 - **Dominant Genres**: Drama, Action, Comedy
 - **Key Thematic Tags**: Male Protagonist, Tragedy, Ensemble Cast
-- **Representative Exemplar Titles**: Demon Slayer: Kimetsu no Yaiba, JUJUTSU KAISEN, My Hero Academia, One-Punch Man, Tokyo Ghoul
+- **Representative Exemplar Titles**: Attack on Titan, Demon Slayer: Kimetsu no Yaiba, JUJUTSU KAISEN, Death Note, Hunter x Hunter (2011)
 
 ### Cluster 3: Specialized Archetype (Drama Focus)
-- **Cluster Size**: 216 titles (10.8% of catalog)
-- **Median Release Year**: 2016
-- **Mean Average Score**: 79.54 / 100
-- **Mean Popularity**: 158,348 members
-- **Favorites-to-Popularity Ratio**: 0.0288
+- **Cluster Size**: 175 titles (8.8% of catalog)
+- **Median Release Year**: 2017
+- **Mean Average Score**: 78.33 / 100
+- **Mean Popularity**: 124,951 members
+- **Favorites-to-Popularity Ratio**: 0.0228
 - **Dominant Genres**: Drama, Action, Fantasy
 - **Key Thematic Tags**: Male Protagonist, Female Protagonist, Tragedy
-- **Representative Exemplar Titles**: A Silent Voice, Your Name., Demon Slayer -Kimetsu no Yaiba- The Movie: Mugen Train, Spirited Away, JUJUTSU KAISEN 0
+- **Representative Exemplar Titles**: Demon Slayer -Kimetsu no Yaiba- The Movie: Mugen Train, JUJUTSU KAISEN 0, Your Name., A Silent Voice, Rascal Does Not Dream of a Dreaming Girl
 
-### Cluster 4: Classics (Legacy Masterworks - High Devotion)
-- **Cluster Size**: 103 titles (5.2% of catalog)
-- **Median Release Year**: 2004
-- **Mean Average Score**: 82.60 / 100
-- **Mean Popularity**: 343,116 members
-- **Favorites-to-Popularity Ratio**: 0.0608
-- **Dominant Genres**: Action, Drama, Adventure
-- **Key Thematic Tags**: Male Protagonist, Tragedy, Philosophy
-- **Representative Exemplar Titles**: Attack on Titan, Death Note, Hunter x Hunter (2011), ONE PIECE, Fullmetal Alchemist: Brotherhood
+### Cluster 4: Classics (Historical Favorites)
+- **Cluster Size**: 143 titles (7.2% of catalog)
+- **Median Release Year**: 2005
+- **Mean Average Score**: 78.57 / 100
+- **Mean Popularity**: 185,361 members
+- **Favorites-to-Popularity Ratio**: 0.0372
+- **Dominant Genres**: Action, Comedy, Drama
+- **Key Thematic Tags**: Male Protagonist, Female Protagonist, Ensemble Cast
+- **Representative Exemplar Titles**: Naruto, Bleach, Death Note, Fullmetal Alchemist: Brotherhood, Hunter x Hunter (2011)
+
+### Cluster 5: Modern Hits (Blockbuster Action)
+- **Cluster Size**: 458 titles (22.9% of catalog)
+- **Median Release Year**: 2018
+- **Mean Average Score**: 78.19 / 100
+- **Mean Popularity**: 293,278 members
+- **Favorites-to-Popularity Ratio**: 0.0299
+- **Dominant Genres**: Action, Drama, Comedy
+- **Key Thematic Tags**: Male Protagonist, Tragedy, Heterosexual
+- **Representative Exemplar Titles**: My Hero Academia, Tokyo Ghoul, Attack on Titan Season 2, Sword Art Online, Attack on Titan Season 3
+
+### Cluster 6: Classics (Legacy Masterworks - High Devotion)
+- **Cluster Size**: 48 titles (2.4% of catalog)
+- **Median Release Year**: 2001
+- **Mean Average Score**: 82.79 / 100
+- **Mean Popularity**: 266,864 members
+- **Favorites-to-Popularity Ratio**: 0.0476
+- **Dominant Genres**: Drama, Fantasy, Adventure
+- **Key Thematic Tags**: Female Protagonist, Male Protagonist, Tragedy
+- **Representative Exemplar Titles**: A Silent Voice, Your Name., Spirited Away, I Want to Eat Your Pancreas, Howl‘s Moving Castle
 
 ---
 
 ## 4. Latent Space Visualizations & Manifold Projections
 High-dimensional representations projected via PCA (2D & 3D) and t-SNE (2D):
-
-### Elbow Silhouette
-![Elbow Silhouette](figures/elbow_silhouette.png)
-
-### Pca 2D
-![Pca 2D](figures/pca_2d.png)
-
-### Pca 3D
-![Pca 3D](figures/pca_3d.png)
-
-### Tsne 2D
-![Tsne 2D](figures/tsne_2d.png)
-
-### Cluster Heatmap
-![Cluster Heatmap](figures/cluster_heatmap.png)
 
 ---
 
