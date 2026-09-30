@@ -13,3 +13,8 @@ wheels/
 .env
 .omg/
 .pytest_cache/
+
+# Core dumps
+core
+core.*
+*.core

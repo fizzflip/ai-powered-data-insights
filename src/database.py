@@ -85,6 +85,29 @@ class AnimeCatalogDB:
                 """
             )
             cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS external_mappings (
+                    anime_id TEXT NOT NULL,
+                    external_site TEXT NOT NULL,
+                    external_id TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (external_site, external_id, anime_id)
+                );
+                """
+            )
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS anime_relations (
+                    source_id TEXT NOT NULL,
+                    target_id TEXT NOT NULL,
+                    relation_type TEXT NOT NULL DEFAULT 'related',
+                    source_api TEXT DEFAULT 'manami',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (source_id, target_id, relation_type)
+                );
+                """
+            )
+            cursor.execute(
                 "CREATE INDEX IF NOT EXISTS idx_anime_pop ON anime_records(popularity DESC);"
             )
             cursor.execute(
@@ -93,8 +116,17 @@ class AnimeCatalogDB:
             cursor.execute(
                 "CREATE INDEX IF NOT EXISTS idx_anime_year ON anime_records(season_year DESC);"
             )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_anime_title_romaji ON anime_records(title_romaji);"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_ext_map_anime ON external_mappings(anime_id);"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_relations_target ON anime_relations(target_id);"
+            )
             conn.commit()
-        logger.debug("Initialized SQLite database at %s", self.db_path)
+        logger.debug("Initialized SQLite database with relations & external mappings at %s", self.db_path)
 
     @staticmethod
     def _normalize_record_id(record: Dict[str, Any], source_api: str) -> str:
@@ -126,17 +158,127 @@ class AnimeCatalogDB:
         t = re.sub(r"[^a-z0-9\s]", " ", t)
         return " ".join(t.split())
 
+    def insert_external_mappings(self, mappings: List[Tuple[str, str, str]]) -> int:
+        """
+        Batch insert external platform cross-reference mappings.
+        mappings: list of (anime_id, external_site, external_id)
+        """
+        if not mappings:
+            return 0
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.executemany(
+                """
+                INSERT OR IGNORE INTO external_mappings (anime_id, external_site, external_id)
+                VALUES (?, ?, ?)
+                """,
+                mappings,
+            )
+            conn.commit()
+            return cursor.rowcount
+
+    def insert_relations(self, relations: List[Tuple[str, str, str, str]]) -> int:
+        """
+        Batch insert relationship graph edges.
+        relations: list of (source_id, target_id, relation_type, source_api)
+        """
+        if not relations:
+            return 0
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.executemany(
+                """
+                INSERT OR IGNORE INTO anime_relations (source_id, target_id, relation_type, source_api)
+                VALUES (?, ?, ?, ?)
+                """,
+                relations,
+            )
+            conn.commit()
+            return cursor.rowcount
+
+    def get_external_mappings(self, anime_id: str) -> List[Dict[str, str]]:
+        """Retrieve all external platform mappings for a given anime ID."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT external_site, external_id FROM external_mappings WHERE anime_id = ?",
+                (anime_id,),
+            )
+            return [
+                {"external_site": row["external_site"], "external_id": row["external_id"]}
+                for row in cursor.fetchall()
+            ]
+
+    def has_relation(self, id1: str, id2: str) -> bool:
+        """
+        Check whether two anime records have any direct or reverse relation edge.
+        Used as Tier 2 Relation Boundary Guard to prevent merging sequels, prequels,
+        and side stories.
+        """
+        if id1 == id2:
+            return False
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT 1 FROM anime_relations
+                WHERE (source_id = ? AND target_id = ?)
+                   OR (source_id = ? AND target_id = ?)
+                LIMIT 1
+                """,
+                (id1, id2, id2, id1),
+            )
+            return cursor.fetchone() is not None
+
+    def get_related_ids(self, anime_id: str) -> set[str]:
+        """Get set of all anime IDs connected to this anime in the relation graph."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT target_id AS rel_id FROM anime_relations WHERE source_id = ?
+                UNION
+                SELECT source_id AS rel_id FROM anime_relations WHERE target_id = ?
+                """,
+                (anime_id, anime_id),
+            )
+            return {row["rel_id"] for row in cursor.fetchall()}
+
+    def sync_intrinsic_mappings(self) -> int:
+        """
+        Ensure every existing record in anime_records has its own intrinsic
+        mapping registered in external_mappings (e.g. ('anilist:123', 'anilist', '123')).
+        """
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT OR IGNORE INTO external_mappings (anime_id, external_site, external_id)
+                SELECT id, source_api, CAST(external_id AS TEXT)
+                FROM anime_records
+                WHERE external_id > 0
+                """
+            )
+            conn.commit()
+            return cursor.rowcount
+
     def thorough_deduplicate(self) -> Dict[str, int]:
         """
-        Perform thorough cross-source and internal deduplication:
-        1. Consolidate legacy 'api:' prefix IDs into 'anilist:' canonical IDs.
-        2. Detect and merge cross-source records (e.g. AniList vs Kitsu) matching on
-           canonical normalized title, release year, and episode count.
-        3. Prune redundant duplicate rows while preserving the richest metadata.
+        Perform 3-Tier cross-source and internal deduplication:
+        Tier 1 (Deterministic ID Crosswalk):
+          - Disjoint Set Union (DSU) grouping records sharing external IDs (MAL, AniList, Kitsu, AniDB).
+          - Merges records with 100% precision without fuzzy false positives.
+        Tier 2 (Relation Boundary Guard):
+          - Inspects anime_relations to reject candidate merges if records are linked as
+            sequels, prequels, side stories, or spin-offs.
+        Tier 3 (Strict Conjunction Match):
+          - Fallback title match guarded by Tier 2, requiring identical release year and matching episodes.
         """
         initial_count = self.count_records()
         consolidated_ids = 0
+        deterministic_id_merged = 0
         cross_source_merged = 0
+        guarded_relational_skips = 0
 
         with self._get_connection() as conn:
             cursor = conn.cursor()
@@ -164,7 +306,107 @@ class AnimeCatalogDB:
                     consolidated_ids += 1
             conn.commit()
 
-            # Step 2: Cross-source title + year deduplication (e.g. AniList vs Kitsu)
+            # Step 2: Sync intrinsic mappings for all current rows
+            cursor.execute(
+                """
+                INSERT OR IGNORE INTO external_mappings (anime_id, external_site, external_id)
+                SELECT id, source_api, CAST(external_id AS TEXT)
+                FROM anime_records
+                WHERE external_id > 0
+                """
+            )
+            conn.commit()
+
+            # Step 3: Tier 1 - Deterministic ID Crosswalk Matching via DSU
+            cursor.execute(
+                """
+                SELECT em1.anime_id AS id1, em2.anime_id AS id2
+                FROM external_mappings em1
+                JOIN external_mappings em2
+                  ON em1.external_site = em2.external_site
+                 AND em1.external_id = em2.external_id
+                WHERE em1.anime_id < em2.anime_id
+                """
+            )
+            cross_pairs = cursor.fetchall()
+
+            if cross_pairs:
+                parent: Dict[str, str] = {}
+
+                def find(i: str) -> str:
+                    path = []
+                    curr = i
+                    while curr in parent:
+                        path.append(curr)
+                        curr = parent[curr]
+                    for p in path[:-1]:
+                        parent[p] = curr
+                    return curr
+
+                def union(i: str, j: str) -> None:
+                    ri, rj = find(i), find(j)
+                    if ri != rj:
+                        parent[ri] = rj
+
+                for pair in cross_pairs:
+                    union(pair["id1"], pair["id2"])
+
+                groups: Dict[str, List[str]] = {}
+                for pair in cross_pairs:
+                    for i in (pair["id1"], pair["id2"]):
+                        root = find(i)
+                        groups.setdefault(root, []).append(i)
+
+                for root in groups:
+                    groups[root] = sorted(list(set(groups[root])))
+
+                for root, group in groups.items():
+                    if len(group) <= 1:
+                        continue
+                    placeholders = ",".join("?" for _ in group)
+                    cursor.execute(
+                        f"SELECT id, source_api, popularity, average_score, favourites, length(raw_json) as json_len "
+                        f"FROM anime_records WHERE id IN ({placeholders})",
+                        group,
+                    )
+                    candidates = cursor.fetchall()
+                    if len(candidates) <= 1:
+                        continue
+
+                    def record_score(row: sqlite3.Row) -> Tuple[int, int, float, int]:
+                        src_priority = 3 if row["source_api"] == "anilist" else (2 if row["source_api"] == "kitsu" else 1)
+                        has_pop = 1 if (row["popularity"] or 0) > 0 else 0
+                        return (src_priority, has_pop, float(row["average_score"] or 0), int(row["json_len"] or 0))
+
+                    sorted_cands = sorted(candidates, key=record_score, reverse=True)
+                    winner_id = sorted_cands[0]["id"]
+                    losers = [c["id"] for c in sorted_cands[1:]]
+
+                    for loser_id in losers:
+                        cursor.execute(
+                            "UPDATE OR IGNORE external_mappings SET anime_id = ? WHERE anime_id = ?",
+                            (winner_id, loser_id),
+                        )
+                        cursor.execute("DELETE FROM external_mappings WHERE anime_id = ?", (loser_id,))
+                        cursor.execute(
+                            "UPDATE OR IGNORE anime_relations SET source_id = ? WHERE source_id = ?",
+                            (winner_id, loser_id),
+                        )
+                        cursor.execute(
+                            "UPDATE OR IGNORE anime_relations SET target_id = ? WHERE target_id = ?",
+                            (winner_id, loser_id),
+                        )
+                        cursor.execute(
+                            "DELETE FROM anime_relations WHERE source_id = ? OR target_id = ?",
+                            (loser_id, loser_id),
+                        )
+                        cursor.execute("DELETE FROM anime_records WHERE id = ?", (loser_id,))
+                        deterministic_id_merged += 1
+                        cross_source_merged += 1
+
+                conn.commit()
+
+            # Step 4: Tier 2 Guarded Tier 3 - Strict Conjunction Match
             cursor.execute(
                 "SELECT id, source_api, external_id, title_romaji, title_english, "
                 "season_year, episodes, average_score, popularity, raw_json FROM anime_records"
@@ -200,7 +442,21 @@ class AnimeCatalogDB:
                             elif (t_clean, y) in primary_title_year:
                                 matched_primary_id = primary_title_year[(t_clean, y)]
                                 break
+
                     if matched_primary_id and matched_primary_id != r["id"]:
+                        cursor.execute(
+                            """
+                            SELECT 1 FROM anime_relations
+                            WHERE (source_id = ? AND target_id = ?)
+                               OR (source_id = ? AND target_id = ?)
+                            LIMIT 1
+                            """,
+                            (r["id"], matched_primary_id, matched_primary_id, r["id"]),
+                        )
+                        if cursor.fetchone() is not None:
+                            guarded_relational_skips += 1
+                            continue
+
                         to_delete_ids.append(r["id"])
 
             for del_id in to_delete_ids:
@@ -213,6 +469,8 @@ class AnimeCatalogDB:
         stats = {
             "initial_count": initial_count,
             "legacy_ids_consolidated": consolidated_ids,
+            "deterministic_id_merged": deterministic_id_merged,
+            "guarded_relational_skips": guarded_relational_skips,
             "cross_source_merged": cross_source_merged,
             "total_pruned": initial_count - final_count,
             "final_count": final_count,

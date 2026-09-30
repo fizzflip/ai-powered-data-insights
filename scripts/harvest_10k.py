@@ -255,7 +255,7 @@ def run_pipeline_reanalysis(adaptive_k: bool = True) -> None:
     """Run full clustering and visualization pipeline on expanded catalog."""
     logger.info("=== Starting Pipeline Re-Analysis on Expanded Catalog ===")
     config = PipelineConfig(
-        num_samples=30000,  # Process all available DB records
+        num_samples=50000,  # Process all available DB records (40k+)
         offline_mode=True,  # Work directly from populated local database
         adaptive_k=adaptive_k,
     )

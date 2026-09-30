@@ -142,6 +142,19 @@ def parse_arguments() -> argparse.Namespace:
         action="store_true",
         help="Run thorough cross-source and internal deduplication on database and export to JSON",
     )
+    parser.add_argument(
+        "--ingest-offline-db",
+        nargs="?",
+        const="data/anime-offline-database.jsonl",
+        default=None,
+        metavar="JSONL_PATH",
+        help="Ingest Manami offline database JSONL into SQLite (mappings, relations, and catalog records)",
+    )
+    parser.add_argument(
+        "--use-offline-db",
+        action="store_true",
+        help="Prioritize SQLite offline indexed database without querying external APIs",
+    )
 
     return parser.parse_args()
 
@@ -161,6 +174,33 @@ def main() -> int:
             sample_steps=sample_steps,
             output_dir=args.output_dir,
         )
+
+    if args.ingest_offline_db:
+        from src.database import AnimeCatalogDB
+        from src.offline_indexer import OfflineIndexer
+
+        db = AnimeCatalogDB(args.db_path)
+        indexer = OfflineIndexer(db)
+        stats = indexer.index_file(args.ingest_offline_db, insert_unrepresented=True)
+
+        print("\n" + "=" * 65)
+        print(" OFFLINE DATABASE INGESTION COMPLETED")
+        print("=" * 65)
+        print(f"File processed: {stats['file_path']}")
+        print(f"Total anime items parsed: {stats['total_items_processed']}")
+        print(f"External platform mappings indexed: {stats['external_mappings_indexed']}")
+        print(f"Franchise relationship edges indexed: {stats['relations_indexed']}")
+        print(f"Initial catalog size: {stats['initial_catalog_records']}")
+        print(f"New anime records added: {stats['new_records_added']}")
+        print(f"Total anime in catalog: {stats['final_catalog_records']}")
+        print(f"Duration: {stats['elapsed_seconds']}s")
+        print("=" * 65 + "\n")
+
+        if args.deduplicate:
+            dedup_stats = db.thorough_deduplicate()
+            db.export_to_json("data/raw_anime_data.json")
+            print(f"Deduplication completed: {dedup_stats}")
+        return 0
 
     if args.deduplicate:
         from src.database import AnimeCatalogDB
@@ -202,7 +242,7 @@ def main() -> int:
         output_dir=args.output_dir,
         figures_dir=figures_dir,
         force_fetch=args.force_fetch,
-        offline_mode=args.offline,
+        offline_mode=args.offline or args.use_offline_db,
         incremental=not args.no_incremental,
         generate_plots=not args.no_plots,
     )
