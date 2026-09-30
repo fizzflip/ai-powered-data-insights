@@ -67,6 +67,11 @@ class ParallelAnimeHarvester:
         """Worker thread for AniList GraphQL endpoint."""
         logger.info("AniList Worker started (rate delay: %.1fs)...", self.rate_delay)
         sort_plans = [
+            ("ID", 1, 100),
+            ("ID_DESC", 1, 100),
+            ("EPISODES_DESC", 1, 100),
+            ("TRENDING_DESC", 1, 100),
+            ("UPDATED_AT_DESC", 1, 100),
             ("POPULARITY_DESC", self.db.get_fetch_page("anilist"), 100),
             ("SCORE_DESC", 1, 100),
             ("FAVOURITES_DESC", 1, 100),
@@ -138,7 +143,7 @@ class ParallelAnimeHarvester:
         logger.info("Kitsu Worker started (rate delay: %.1fs)...", self.rate_delay)
         start_offset = (self.db.get_fetch_page("kitsu") - 1) * 20
         offset = start_offset
-        max_offset = 15000  # Kitsu has ~22,000 anime
+        max_offset = 22480  # Kitsu has ~22,481 anime
 
         try:
             while offset <= max_offset and not self.stop_event.is_set():
@@ -250,7 +255,7 @@ def run_pipeline_reanalysis(adaptive_k: bool = True) -> None:
     """Run full clustering and visualization pipeline on expanded catalog."""
     logger.info("=== Starting Pipeline Re-Analysis on Expanded Catalog ===")
     config = PipelineConfig(
-        num_samples=15000,  # Process all available DB records
+        num_samples=30000,  # Process all available DB records
         offline_mode=True,  # Work directly from populated local database
         adaptive_k=adaptive_k,
     )
