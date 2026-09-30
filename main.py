@@ -177,6 +177,14 @@ def parse_arguments() -> argparse.Namespace:
         help="Launch Marimo interactive visual dashboard: 'run' for read-only app view (default), 'edit' for interactive notebook editor",
     )
     parser.add_argument(
+        "--notebook",
+        nargs="?",
+        const="run",
+        choices=["run", "edit"],
+        default=None,
+        help="Launch Marimo reactive pedagogical Jupyter-style notebook: 'run' for read-only app view (default), 'edit' for interactive notebook editor",
+    )
+    parser.add_argument(
         "--port",
         type=int,
         default=2718,
@@ -194,6 +202,20 @@ def parse_arguments() -> argparse.Namespace:
 def main() -> int:
     """Execute main CLI workflow."""
     args = parse_arguments()
+
+    if args.notebook:
+        import subprocess
+        repo_root = os.path.dirname(os.path.abspath(__file__))
+        notebook_path = os.path.join(repo_root, "notebooks", "anime_notebook.py")
+        cmd = [sys.executable, "-m", "marimo", args.notebook, notebook_path, "--port", str(args.port)]
+        if args.headless:
+            cmd.append("--headless")
+        logger.info("Launching Marimo reactive notebook (%s mode) on port %d: %s", args.notebook, args.port, " ".join(cmd))
+        try:
+            return subprocess.call(cmd)
+        except KeyboardInterrupt:
+            logger.info("Marimo notebook stopped by user.")
+            return 0
 
     if args.dashboard:
         import subprocess

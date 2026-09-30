@@ -18,3 +18,7 @@ wheels/
 core
 core.*
 *.core
+
+# Marimo local cache
+__marimo__/
+notebooks/__marimo__/
