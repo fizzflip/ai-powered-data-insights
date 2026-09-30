@@ -176,8 +176,8 @@ The raw feature vector $\mathbf{x}_{\text{raw}} \in \mathbb{R}^D$ undergoes five
 3. **Domain-Specific Ratios**:
    - **Chronological Recency**:
      $$\text{recency} = \frac{\text{year}_i - \min(\mathbf{year})}{\max(\mathbf{year}) - \min(\mathbf{year})}$$
-   - **Devotion Factor (Favorites-to-Popularity Ratio)**:
-     $$\text{favorites\_ratio} = \frac{x_{\text{favourites}}}{x_{\text{popularity}} + \epsilon}, \quad \epsilon = 1.0$$
+   - **Devotion Factor (`favorites_ratio` / Favorites-to-Popularity Ratio)**:
+     $$\text{favorites}_{\text{ratio}} = \frac{x_{\text{favourites}}}{x_{\text{popularity}} + \epsilon}, \quad \epsilon = 1.0$$
 
 4. **Multi-Label Categorical Binarization**:
    Genre memberships $G_i \subseteq \mathcal{G}$ are mapped into an indicator vector $\mathbf{g}_i \in \{0, 1\}^{|\mathcal{G}|}$.
@@ -198,7 +198,7 @@ To identify structural outliers and atypical niche works without distorting cent
 
 $$N_\varepsilon(\mathbf{p}) = \{\mathbf{q} \in \mathcal{D} \mid \|\mathbf{p} - \mathbf{q}\|_2 \le \varepsilon\}$$
 
-Points with $|N_\varepsilon(\mathbf{p})| < \text{min\_samples}$ are labeled as noise ($\text{cluster} = -1$).
+Points with $|N_\varepsilon(\mathbf{p})| < \text{min}_{\text{samples}}$ are labeled as noise ($\text{cluster} = -1$).
 
 ### 3.4 Cluster Validation Diagnostics and Parsimony Scoring
 
