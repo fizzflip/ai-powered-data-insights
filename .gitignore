@@ -25,10 +25,24 @@ Thumbs.db
 .idea/
 .vscode/
 
-# SQLite temporary and journal files
+# SQLite databases and journal files
+*.db
 *.db-wal
 *.db-shm
 *.db-journal
+
+# Large raw datasets and pre-packaged local databases
+data/*.db
+data/*.db*
+data/*.jsonl
+data/*.jsonl.gz
+data/raw_anime_data.json
+data/*.json.gz
+reports/data/*.db
+reports/data/*.db*
+
+# Preserve distribution assets for Netlify WASM delivery
+!reports/data/anime_catalog_compact.json.gz
 
 # Marimo local caches and static export bundles
 __marimo__/
