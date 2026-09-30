@@ -298,6 +298,33 @@ class DataPreprocessor:
         df_clean["recency"] = (df_clean["seasonYear"] - self.min_year_) / year_denom
         df_clean["favorites_ratio"] = df_clean["favourites"] / (df_clean["popularity"] + 1.0)
 
+        # Origin classification annotation
+        if "origin_cohort" not in df_clean.columns or "sub_origin" not in df_clean.columns:
+            from src.origin_classifier import classify_anime_origin
+
+            cohorts: List[str] = []
+            suborigins: List[str] = []
+            for _, row_data in df_clean.iterrows():
+                # Fast path if already on row
+                cohort_val = row_data.get("origin_cohort")
+                sub_val = row_data.get("sub_origin")
+                is_jp_val = row_data.get("is_jp")
+
+                if pd.notna(cohort_val) and str(cohort_val) in ("jp", "non-jp"):
+                    cohorts.append(str(cohort_val))
+                    suborigins.append(str(sub_val) if pd.notna(sub_val) else ("JP" if cohort_val == "jp" else "OTHER"))
+                elif pd.notna(is_jp_val):
+                    is_jp_int = int(is_jp_val)
+                    cohorts.append("jp" if is_jp_int == 1 else "non-jp")
+                    suborigins.append(str(row_data.get("country_code", "JP" if is_jp_int == 1 else "OTHER")))
+                else:
+                    res = classify_anime_origin(row_data.to_dict())
+                    cohorts.append(res.origin_cohort)
+                    suborigins.append(res.sub_origin)
+
+            df_clean["origin_cohort"] = cohorts
+            df_clean["sub_origin"] = suborigins
+
         return df_clean
 
     def fit(self, df: pd.DataFrame) -> "DataPreprocessor":

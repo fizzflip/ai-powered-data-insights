@@ -155,6 +155,13 @@ def parse_arguments() -> argparse.Namespace:
         action="store_true",
         help="Prioritize SQLite offline indexed database without querying external APIs",
     )
+    parser.add_argument(
+        "--origin",
+        type=str,
+        default="all",
+        choices=["all", "jp", "non-jp", "compare"],
+        help="Origin cohort filter: 'all', 'jp', 'non-jp', or 'compare' (dual-cohort comparative run)",
+    )
 
     return parser.parse_args()
 
@@ -224,7 +231,6 @@ def main() -> int:
             run_pipeline_reanalysis(adaptive_k=args.adaptive_k)
         return 0
 
-    figures_dir = os.path.join(args.output_dir, "figures")
     k_param = None if (args.k == 0 or args.adaptive_k) else args.k
 
     config = PipelineConfig(
@@ -240,31 +246,56 @@ def main() -> int:
         dbscan_min_samples=args.dbscan_min_samples,
         cache_path="data/raw_anime_data.json",
         output_dir=args.output_dir,
-        figures_dir=figures_dir,
+        figures_dir=None,  # Dynamic resolution based on origin
         force_fetch=args.force_fetch,
         offline_mode=args.offline or args.use_offline_db,
         incremental=not args.no_incremental,
         generate_plots=not args.no_plots,
+        origin=args.origin,
     )
 
     try:
         pipeline = InsightsPipeline(config)
         results = pipeline.run()
 
-        print("\n" + "=" * 65)
-        print(" PIPELINE EXECUTION COMPLETED")
-        print("=" * 65)
-        print(f"Total anime analyzed: {results['num_samples']}")
-        print(f"Total in SQLite database: {results['db_total_count']}")
-        print(f"Cluster count: {results['k_optimal']}")
-        print("Empirical Archetypes Discovered:")
-        for cid, arch in results["archetype_labels"].items():
-            print(f"  • Cluster {cid}: {arch}")
-        print(f"DBSCAN: {results['dbscan_clusters']} dense clusters, {results['dbscan_noise']} noise points")
-        if results.get("figure_paths"):
-            print(f"Generated {len(results['figure_paths'])} visualization figures in: {figures_dir}")
-        print(f"Detailed analytical report saved to: {results['report_path']}")
-        print("=" * 65 + "\n")
+        if results.get("origin") == "compare":
+            print("\n" + "=" * 65)
+            print(" COMPARATIVE CROSS-MARKET PIPELINE EXECUTION COMPLETED")
+            print("=" * 65)
+            print(f"Total anime analyzed: {results['num_samples']}")
+            print(f"  • Japanese Domestic (JP): {results['num_jp']} titles")
+            print(f"  • Overseas / International (Non-JP): {results['num_non_jp']} titles")
+            print(f"Total in SQLite database: {results['db_total_count']}")
+            print(f"Optimal cluster counts: JP k={results['k_optimal']['jp']}, Non-JP k={results['k_optimal']['non_jp']}")
+            print("\nJapanese Domestic Archetypes:")
+            for cid, arch in results["archetype_labels"]["jp"].items():
+                print(f"  • Cluster {cid}: {arch}")
+            print("\nOverseas (Non-JP) Archetypes:")
+            for cid, arch in results["archetype_labels"]["non_jp"].items():
+                print(f"  • Cluster {cid}: {arch}")
+            if results.get("figure_paths"):
+                print(f"\nGenerated {len(results['figure_paths'])} comparative and cohort figures in:")
+                print(f"  • {os.path.join(args.output_dir, 'figures_compare')}")
+                print(f"  • {os.path.join(args.output_dir, 'figures_jp')}")
+                print(f"  • {os.path.join(args.output_dir, 'figures_non_jp')}")
+            print(f"\nDetailed comparative report saved to: {results['report_path']}")
+            print("=" * 65 + "\n")
+        else:
+            print("\n" + "=" * 65)
+            print(" PIPELINE EXECUTION COMPLETED")
+            print("=" * 65)
+            print(f"Cohort: {args.origin}")
+            print(f"Total anime analyzed: {results['num_samples']}")
+            print(f"Total in SQLite database: {results['db_total_count']}")
+            print(f"Cluster count: {results['k_optimal']}")
+            print("Empirical Archetypes Discovered:")
+            for cid, arch in results["archetype_labels"].items():
+                print(f"  • Cluster {cid}: {arch}")
+            print(f"DBSCAN: {results['dbscan_clusters']} dense clusters, {results['dbscan_noise']} noise points")
+            if results.get("figure_paths"):
+                print(f"Generated {len(results['figure_paths'])} visualization figures in: {config.figures_dir}")
+            print(f"Detailed analytical report saved to: {results['report_path']}")
+            print("=" * 65 + "\n")
         return 0
 
     except Exception as e:

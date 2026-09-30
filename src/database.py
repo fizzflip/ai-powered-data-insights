@@ -69,11 +69,21 @@ class AnimeCatalogDB:
                     popularity INTEGER,
                     favourites INTEGER,
                     raw_json TEXT NOT NULL,
+                    country_code TEXT DEFAULT 'JP',
+                    is_jp INTEGER DEFAULT 1,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
                 """
             )
+            # Idempotent migration for existing databases
+            cursor.execute("PRAGMA table_info(anime_records);")
+            cols = {row["name"] for row in cursor.fetchall()}
+            if "country_code" not in cols:
+                cursor.execute("ALTER TABLE anime_records ADD COLUMN country_code TEXT DEFAULT 'JP';")
+            if "is_jp" not in cols:
+                cursor.execute("ALTER TABLE anime_records ADD COLUMN is_jp INTEGER DEFAULT 1;")
+
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS fetch_state (
@@ -120,13 +130,19 @@ class AnimeCatalogDB:
                 "CREATE INDEX IF NOT EXISTS idx_anime_title_romaji ON anime_records(title_romaji);"
             )
             cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_anime_is_jp ON anime_records(is_jp);"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_anime_country ON anime_records(country_code);"
+            )
+            cursor.execute(
                 "CREATE INDEX IF NOT EXISTS idx_ext_map_anime ON external_mappings(anime_id);"
             )
             cursor.execute(
                 "CREATE INDEX IF NOT EXISTS idx_relations_target ON anime_relations(target_id);"
             )
             conn.commit()
-        logger.debug("Initialized SQLite database with relations & external mappings at %s", self.db_path)
+        logger.debug("Initialized SQLite database with relations, mappings & origin fields at %s", self.db_path)
 
     @staticmethod
     def _normalize_record_id(record: Dict[str, Any], source_api: str) -> str:
@@ -523,7 +539,19 @@ class AnimeCatalogDB:
                 genres_str = json.dumps(genres if isinstance(genres, list) else [])
                 tags_str = json.dumps(tags if isinstance(tags, list) else [])
                 studios_str = json.dumps(studios if isinstance(studios, (dict, list)) else {})
-                raw_str = json.dumps(rec, ensure_ascii=False)
+
+                from src.origin_classifier import classify_anime_origin
+                origin_res = classify_anime_origin(rec)
+                country_code = origin_res.sub_origin
+                is_jp = origin_res.is_jp
+
+                # Ensure origin info is persisted in raw_json
+                if isinstance(rec, dict):
+                    rec["origin_cohort"] = origin_res.origin_cohort
+                    rec["sub_origin"] = origin_res.sub_origin
+                    rec["is_jp"] = is_jp
+
+                raw_str = json.dumps(rec, ensure_ascii=False, separators=(",", ":"))
 
                 cursor.execute(
                     """
@@ -531,8 +559,8 @@ class AnimeCatalogDB:
                         id, source_api, external_id, title_romaji, title_english,
                         season_year, season, episodes, duration, genres_json,
                         tags_json, studios_json, source_material, average_score,
-                        popularity, favourites, raw_json, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        popularity, favourites, raw_json, country_code, is_jp, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(id) DO UPDATE SET
                         title_romaji=excluded.title_romaji,
                         title_english=excluded.title_english,
@@ -548,6 +576,8 @@ class AnimeCatalogDB:
                         popularity=excluded.popularity,
                         favourites=excluded.favourites,
                         raw_json=excluded.raw_json,
+                        country_code=excluded.country_code,
+                        is_jp=excluded.is_jp,
                         updated_at=excluded.updated_at;
                     """,
                     (
@@ -568,6 +598,8 @@ class AnimeCatalogDB:
                         rec.get("popularity"),
                         rec.get("favourites"),
                         raw_str,
+                        country_code,
+                        is_jp,
                         now,
                     ),
                 )
@@ -587,23 +619,40 @@ class AnimeCatalogDB:
         )
         return (inserted, updated)
 
-    def count_records(self) -> int:
-        """Count total anime records in database."""
+    def count_records(self, origin: Optional[str] = None) -> int:
+        """Count total anime records in database, optionally filtered by origin."""
+        where_clauses = []
+        params: List[Any] = []
+        if origin:
+            norm_origin = str(origin).strip().lower()
+            if norm_origin in ("jp", "japan"):
+                where_clauses.append("is_jp = 1")
+            elif norm_origin in ("non-jp", "non_jp", "international"):
+                where_clauses.append("is_jp = 0")
+            elif norm_origin not in ("all", "*"):
+                where_clauses.append("UPPER(country_code) = ?")
+                params.append(origin.strip().upper())
+
+        where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+        query = f"SELECT COUNT(*) FROM anime_records {where_sql}"
+
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) FROM anime_records")
+            cursor.execute(query, params)
             return cursor.fetchone()[0]
 
     def get_all_records(
         self,
         limit: Optional[int] = None,
         sort_by: str = "popularity DESC",
+        origin: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         Retrieve records from database parsed into canonical dictionaries.
 
         :param limit: Maximum number of records to return.
         :param sort_by: SQL sort order (e.g. 'popularity DESC', 'average_score DESC').
+        :param origin: Origin filter: 'jp', 'non-jp', specific code ('CN', 'KR', 'WESTERN'), or None/'all'.
         :return: List of canonical anime dictionaries.
         """
         valid_sorts = {
@@ -614,8 +663,22 @@ class AnimeCatalogDB:
         }
         order_clause = valid_sorts.get(sort_by, "popularity DESC")
 
-        query = f"SELECT raw_json, source_api FROM anime_records ORDER BY {order_clause}"
+        where_clauses = []
         params: List[Any] = []
+
+        if origin:
+            norm_origin = str(origin).strip().lower()
+            if norm_origin in ("jp", "japan"):
+                where_clauses.append("is_jp = 1")
+            elif norm_origin in ("non-jp", "non_jp", "international"):
+                where_clauses.append("is_jp = 0")
+            elif norm_origin not in ("all", "*"):
+                where_clauses.append("UPPER(country_code) = ?")
+                params.append(origin.strip().upper())
+
+        where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+        query = f"SELECT raw_json, source_api, country_code, is_jp FROM anime_records {where_sql} ORDER BY {order_clause}"
+
         if limit is not None and limit > 0:
             query += " LIMIT ?"
             params.append(limit)
@@ -629,11 +692,55 @@ class AnimeCatalogDB:
                     item = json.loads(row["raw_json"])
                     if isinstance(item, dict):
                         item["source_api"] = row["source_api"]
+                        item["country_code"] = row["country_code"]
+                        item["is_jp"] = row["is_jp"]
+                        if "origin_cohort" not in item:
+                            item["origin_cohort"] = "jp" if row["is_jp"] == 1 else "non-jp"
+                        if "sub_origin" not in item:
+                            item["sub_origin"] = row["country_code"] or ("JP" if row["is_jp"] == 1 else "OTHER")
                     records.append(item)
                 except json.JSONDecodeError:
                     continue
 
         return records
+
+    def backfill_origin_classification(self, force: bool = False) -> Dict[str, Any]:
+        """
+        Backfill country_code and is_jp for records using AnimeOriginClassifier.
+        """
+        from src.origin_classifier import classify_anime_origin
+
+        stats: Dict[str, Any] = {"processed": 0, "jp": 0, "non_jp": 0, "suborigins": {}}
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            if force:
+                cursor.execute("SELECT id, raw_json FROM anime_records")
+            else:
+                cursor.execute("SELECT id, raw_json FROM anime_records WHERE country_code IS NULL OR country_code = 'JP'")
+            rows = cursor.fetchall()
+
+            updates = []
+            for row in rows:
+                try:
+                    rec = json.loads(row["raw_json"])
+                except Exception:
+                    rec = {}
+                res = classify_anime_origin(rec)
+                updates.append((res.sub_origin, res.is_jp, row["id"]))
+                stats["processed"] += 1
+                if res.is_jp == 1:
+                    stats["jp"] += 1
+                else:
+                    stats["non_jp"] += 1
+                stats["suborigins"][res.sub_origin] = stats["suborigins"].get(res.sub_origin, 0) + 1
+
+            cursor.executemany(
+                "UPDATE anime_records SET country_code = ?, is_jp = ? WHERE id = ?",
+                updates,
+            )
+            conn.commit()
+        logger.info("Backfill origin classification completed: %s", stats)
+        return stats
 
     def export_to_json(self, json_path: str = "data/raw_anime_data.json") -> int:
         """Export all current records to portable JSON file for offline demonstration."""

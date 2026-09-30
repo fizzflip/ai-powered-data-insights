@@ -553,9 +553,11 @@ query ($page: Int, $perPage: Int, $sort: [MediaSort] = [POPULARITY_DESC]) {
     }
     media(type: ANIME, sort: $sort) {
       id
+      countryOfOrigin
       title {
         romaji
         english
+        native
       }
       seasonYear
       season
@@ -806,6 +808,7 @@ class MultiSourceFetcher:
         force_fetch: bool = False,
         offline: bool = False,
         incremental: bool = True,
+        origin: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         Retrieve anime records with incremental database management and multi-source fallbacks.
@@ -815,27 +818,46 @@ class MultiSourceFetcher:
         :param force_fetch: Bypass existing DB and fetch new records from API.
         :param offline: Run purely offline from SQLite database or mock.
         :param incremental: Resume from last fetched page/offset without duplicating.
+        :param origin: Origin filter: 'jp', 'non-jp', or specific country code (e.g. 'CN', 'KR').
         """
         # 1. Offline Mode: Return existing DB records or mock
         if offline:
             # If custom cache was set and exists
             cached = self.load_cache()
             if cached is not None and len(cached) > 0:
+                if origin:
+                    from src.origin_classifier import classify_anime_origin
+                    norm_o = str(origin).strip().lower()
+                    filtered = []
+                    for c in cached:
+                        cohort = c.get("origin_cohort")
+                        if not cohort:
+                            res = classify_anime_origin(c)
+                            cohort = res.origin_cohort
+                        if norm_o in ("jp", "japan") and cohort == "jp":
+                            filtered.append(c)
+                        elif norm_o in ("non-jp", "non_jp") and cohort == "non-jp":
+                            filtered.append(c)
+                        elif norm_o not in ("all", "*"):
+                            sub = c.get("sub_origin")
+                            if sub and sub.upper() == origin.strip().upper():
+                                filtered.append(c)
+                    return filtered[:limit]
                 return cached[:limit]
+
             if not self._custom_cache:
-                db_count = self.db.count_records()
+                db_count = self.db.count_records(origin=origin)
                 if db_count > 0:
-                    logger.info("Offline mode: loaded %d records from SQLite incremental database.", min(db_count, limit))
-                    return self.db.get_all_records(limit=limit)
+                    logger.info("Offline mode: loaded %d records from SQLite incremental database (origin=%s).", min(db_count, limit), origin)
+                    return self.db.get_all_records(limit=limit, origin=origin)
             logger.info("Offline mode: using built-in mock dataset.")
             return MOCK_ANIME_DATA[:limit]
 
-
         # 2. Check if local DB already has sufficient records and force_fetch is False
-        db_count = self.db.count_records()
+        db_count = self.db.count_records(origin=origin)
         if not force_fetch and db_count >= limit:
-            logger.info("Local database satisfies request (%d cached records >= %d requested).", db_count, limit)
-            return self.db.get_all_records(limit=limit)
+            logger.info("Local database satisfies request (%d cached records >= %d requested, origin=%s).", db_count, limit, origin)
+            return self.db.get_all_records(limit=limit, origin=origin)
 
         records_needed = limit if force_fetch else max(0, limit - db_count)
         logger.info(
