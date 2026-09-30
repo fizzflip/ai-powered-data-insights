@@ -637,105 +637,162 @@ def embedded_catalog_data():
     ]
     return (EMBEDDED_CATALOG,)
 
+
 @app.cell
-def load_resilient_catalog(EMBEDDED_CATALOG, pd, repo_root):
-    import json
-    import sqlite3
+def catalog_toggle_control(mo):
+    load_full_db = mo.ui.checkbox(
+        label="Load Full 40,000+ Title Catalog (Manami Offline DB, 1.1 MB)",
+        value=False,
+    )
+    return (load_full_db,)
 
-    db_path = repo_root / "data" / "anime_catalog.db"
-    source_name = "Embedded Standalone Benchmark Dataset"
+
+@app.cell
+async def load_resilient_catalog(EMBEDDED_CATALOG, load_full_db, pd, repo_root):
+    import gzip as _gzip
+    import json as _json
+    import os as _os
+    import sqlite3 as _sqlite3
+    import sys as _sys
+
     records = []
+    source_name = "Embedded Standalone Benchmark Dataset"
+    catalog_status = "Default Fast Subset Active"
 
-    # Tier 1: Try SQLite database directly with standard library sqlite3
-    if db_path.exists():
-        try:
-            conn = sqlite3.connect(str(db_path))
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-            cursor.execute(
-                """
-                SELECT external_id, id, title_romaji, title_english,
-                       season_year, season, episodes, duration,
-                       genres_json, tags_json, average_score, popularity,
-                       favourites, country_code, is_jp, raw_json
-                FROM anime_records
-                ORDER BY popularity DESC
-                LIMIT 5000
-                """
-            )
-            rows = cursor.fetchall()
-            if rows:
+    # Route A: Lazy-load full 40,000+ Manami catalog when toggled
+    if load_full_db.value:
+        is_emscripten = _sys.platform == "emscripten" or "pyodide" in _sys.modules
+
+        if is_emscripten:
+            # Browser WASM execution path via Pyodide pyfetch
+            try:
+                from pyodide.http import pyfetch
+
+                target_urls = [
+                    "./data/anime_catalog_compact.json.gz",
+                    "data/anime_catalog_compact.json.gz",
+                    "/data/anime_catalog_compact.json.gz",
+                ]
+                raw_bytes = None
+                fetch_error = None
+                for url in target_urls:
+                    try:
+                        resp = await pyfetch(url)
+                        if resp.status == 200:
+                            raw_bytes = await resp.bytes()
+                            break
+                    except Exception as e:
+                        fetch_error = e
+
+                if raw_bytes is not None:
+                    # Resilient decompression: handle raw gzip vs CDN transparent decompression
+                    if len(raw_bytes) >= 2 and raw_bytes[:2] == b"\x1f\x8b":
+                        decompressed = _gzip.decompress(raw_bytes)
+                    else:
+                        decompressed = raw_bytes
+
+                    records = _json.loads(decompressed.decode("utf-8"))
+                    source_name = f"Manami Offline Database ({len(records):,} titles via Pyodide HTTP)"
+                    catalog_status = "Live 40k+ Catalog Ingested Successfully"
+                else:
+                    catalog_status = f"Catalog Fetch Fallback: {fetch_error}"
+            except Exception as ex:
+                catalog_status = f"Pyodide Fetch Error: {ex}"
+
+        else:
+            # Native desktop / CPython execution path via local filesystem
+            local_json_gz = repo_root / "data" / "anime_catalog_compact.json.gz"
+            local_db = repo_root / "data" / "anime_catalog_compact.db"
+
+            if local_json_gz.exists():
+                try:
+                    with _gzip.open(local_json_gz, "rt", encoding="utf-8") as f:
+                        records = _json.load(f)
+                    source_name = f"Local Compact Gzip Catalog ({len(records):,} titles)"
+                    catalog_status = "Local Gzip Catalog Loaded"
+                except Exception as ex:
+                    catalog_status = f"Local Gzip Read Error: {ex}"
+
+            elif local_db.exists():
+                try:
+                    conn = _sqlite3.connect(str(local_db))
+                    conn.row_factory = _sqlite3.Row
+                    cur = conn.cursor()
+                    cur.execute("SELECT * FROM anime_records")
+                    rows = cur.fetchall()
+                    for r in rows:
+                        records.append({
+                            "id": r["id"],
+                            "title": r["title"],
+                            "seasonYear": r["season_year"],
+                            "averageScore": r["average_score"],
+                            "popularity": r["popularity"],
+                            "favourites": r["favourites"],
+                            "episodes": r["episodes"],
+                            "duration": r["duration"],
+                            "genres": _json.loads(r["genres"]) if r["genres"] else [],
+                            "tags": _json.loads(r["tags"]) if r["tags"] else [],
+                            "origin_cohort": r["origin_cohort"] or "jp",
+                            "sub_origin": r["sub_origin"] or "JP",
+                        })
+                    conn.close()
+                    source_name = f"Local Compact SQLite Catalog ({len(records):,} titles)"
+                    catalog_status = "Local SQLite Catalog Loaded"
+                except Exception as ex:
+                    catalog_status = f"Local SQLite Read Error: {ex}"
+
+    # Route B: Fast default execution (Instant 0 ms latency)
+    if not records:
+        # Check if local SQLite database exists for standard desktop runs
+        db_path = repo_root / "data" / "anime_catalog.db"
+        if not load_full_db.value and db_path.exists():
+            try:
+                conn = _sqlite3.connect(str(db_path))
+                conn.row_factory = _sqlite3.Row
+                cur = conn.cursor()
+                cur.execute(
+                    """
+                    SELECT external_id, id, title_romaji, title_english,
+                           season_year, season, episodes, duration,
+                           genres_json, tags_json, average_score, popularity,
+                           favourites, country_code, is_jp, raw_json
+                    FROM anime_records
+                    ORDER BY popularity DESC
+                    LIMIT 2000
+                    """
+                )
+                rows = cur.fetchall()
                 for _row in rows:
-                    raw_dict = {}
-                    if _row["raw_json"]:
-                        try:
-                            raw_dict = json.loads(_row["raw_json"])
-                        except Exception:
-                            raw_dict = {}
-
-                    # Extract genres
                     g_val = _row["genres_json"]
-                    if g_val and g_val.startswith("["):
-                        try:
-                            genres = json.loads(g_val)
-                        except Exception:
-                            genres = []
-                    elif "genres" in raw_dict and isinstance(raw_dict["genres"], list):
-                        genres = raw_dict["genres"]
-                    else:
-                        genres = []
-
-                    # Extract tags
+                    genres = _json.loads(g_val) if g_val and g_val.startswith("[") else []
                     t_val = _row["tags_json"]
-                    if t_val and t_val.startswith("["):
-                        try:
-                            tags = json.loads(t_val)
-                        except Exception:
-                            tags = []
-                    elif "tags" in raw_dict and isinstance(raw_dict["tags"], list):
-                        tags = raw_dict["tags"]
-                    else:
-                        tags = []
-
+                    tags = _json.loads(t_val) if t_val and t_val.startswith("[") else []
+                    title = _row["title_english"] or _row["title_romaji"] or "Unknown"
                     is_jp_val = int(_row["is_jp"]) if _row["is_jp"] is not None else 1
                     c_code = str(_row["country_code"]) if _row["country_code"] else ("JP" if is_jp_val == 1 else "OTHER")
-                    title = _row["title_english"] or _row["title_romaji"] or raw_dict.get("title") or "Unknown"
-
                     records.append({
-                        "id": _row["external_id"] if _row["external_id"] and _row["external_id"] > 0 else _row["id"],
+                        "id": _row["external_id"] or _row["id"],
                         "title": title,
-                        "seasonYear": _row["season_year"] or raw_dict.get("seasonYear"),
-                        "averageScore": _row["average_score"] or raw_dict.get("averageScore"),
-                        "popularity": _row["popularity"] or raw_dict.get("popularity"),
-                        "favourites": _row["favourites"] or raw_dict.get("favourites"),
-                        "episodes": _row["episodes"] or raw_dict.get("episodes"),
-                        "duration": _row["duration"] or raw_dict.get("duration"),
+                        "seasonYear": _row["season_year"],
+                        "averageScore": _row["average_score"],
+                        "popularity": _row["popularity"],
+                        "favourites": _row["favourites"],
+                        "episodes": _row["episodes"],
+                        "duration": _row["duration"],
                         "genres": genres,
                         "tags": tags,
                         "origin_cohort": "jp" if is_jp_val == 1 else "non-jp",
                         "sub_origin": c_code,
                     })
-                source_name = f"SQLite Persistent Catalog ({len(records):,} records)"
-            conn.close()
-        except Exception:
-            records = []
-
-    # Tier 2: Try JSON cache if SQLite was unavailable or empty
-    if not records:
-        json_path = repo_root / "data" / "raw_anime_data.json"
-        if json_path.exists():
-            try:
-                with open(json_path, "r", encoding="utf-8") as f:
-                    records = json.load(f)
-                if records and len(records) > 0:
-                    source_name = f"Local Cached JSON ({len(records):,} records)"
+                conn.close()
+                source_name = f"Bundled SQLite Baseline ({len(records):,} titles)"
             except Exception:
                 records = []
 
-    # Tier 3: Curated embedded fallback for 100% client-side Pyodide WASM execution
-    if not records:
-        records = EMBEDDED_CATALOG
-        source_name = f"Embedded Client-Side Catalog ({len(records)} benchmark titles)"
+        # Fallback to zero-dependency embedded benchmark array
+        if not records:
+            records = EMBEDDED_CATALOG
+            source_name = f"Embedded Client-Side Baseline ({len(records)} benchmark titles)"
 
     raw_catalog_df = pd.DataFrame(records)
 
@@ -746,7 +803,7 @@ def load_resilient_catalog(EMBEDDED_CATALOG, pd, repo_root):
 
     def _clean_title(t):
         if isinstance(t, dict):
-            return t.get("english") or t.get("romaji") or t.get("userPreferred") or t.get("native") or "Unknown"
+            return t.get("english") or t.get("romaji") or t.get("userPreferred") or "Unknown"
         return str(t) if pd.notna(t) else "Unknown"
 
     if "title" in raw_catalog_df.columns:
@@ -755,7 +812,7 @@ def load_resilient_catalog(EMBEDDED_CATALOG, pd, repo_root):
     if "origin_cohort" not in raw_catalog_df.columns:
         raw_catalog_df["origin_cohort"] = "jp"
 
-    return raw_catalog_df, source_name
+    return catalog_status, raw_catalog_df, source_name
 
 
 @app.cell
@@ -780,7 +837,7 @@ def section_1_narrative(mo, raw_catalog_df, source_name):
 
 
 @app.cell
-def ingestion_controls(mo):
+def ingestion_controls(mo, raw_catalog_df):
     cohort_picker = mo.ui.dropdown(
         options={
             "All Productions (Global)": "all",
@@ -791,11 +848,13 @@ def ingestion_controls(mo):
         label="Origin Cohort",
     )
 
+    max_samples = min(10000, max(500, len(raw_catalog_df)))
+    step_val = 50 if max_samples <= 5000 else 100
     sample_slider = mo.ui.slider(
         start=50,
-        stop=5000,
-        step=50,
-        value=500,
+        stop=max_samples,
+        step=step_val,
+        value=min(500, max_samples),
         label="Sample Volume (N)",
     )
 
@@ -811,15 +870,36 @@ def ingestion_controls(mo):
 
 @app.cell
 def display_ingestion_controls(
+    catalog_status,
     cohort_picker,
+    load_full_db,
     min_score_slider,
     mo,
+    raw_catalog_df,
     sample_slider,
+    source_name,
 ):
-    ingestion_controls_view = mo.hstack(
-        [cohort_picker, sample_slider, min_score_slider],
-        justify="start",
-        gap=1.5,
+    cohort_counts = raw_catalog_df["origin_cohort"].value_counts().to_dict()
+    jp_n = cohort_counts.get("jp", 0)
+    non_jp_n = cohort_counts.get("non-jp", 0)
+    callout_kind = "success" if load_full_db.value else "info"
+
+    status_card = mo.callout(
+        mo.md(
+            f"**Dataset Tier**: `{source_name}`  \n"
+            f"**Active Partition**: **{len(raw_catalog_df):,}** entities (**{jp_n:,}** JP Domestic, **{non_jp_n:,}** Overseas Non-JP).  \n"
+            f"**Ingestion State**: *{catalog_status}*."
+        ),
+        kind=callout_kind,
+    )
+
+    ingestion_controls_view = mo.vstack(
+        [
+            mo.hstack([load_full_db], justify="start"),
+            mo.hstack([cohort_picker, sample_slider, min_score_slider], justify="start", gap=1.5),
+            status_card,
+        ],
+        gap=1.0,
     )
     ingestion_controls_view
     return

@@ -30,6 +30,8 @@ class NetlifyPreviewHandler(http.server.SimpleHTTPRequestHandler):
         ".mjs": "application/javascript",
         ".css": "text/css",
         ".html": "text/html",
+        ".gz": "application/gzip",
+        ".db": "application/vnd.sqlite3",
     }
 
     def end_headers(self) -> None:

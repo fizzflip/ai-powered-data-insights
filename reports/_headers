@@ -19,3 +19,15 @@
 
 /figures/*
   Cache-Control: public, max-age=86400
+
+/data/*.gz
+  Content-Type: application/gzip
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+  Cross-Origin-Resource-Policy: cross-origin
+
+/data/*.db
+  Content-Type: application/vnd.sqlite3
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+  Cross-Origin-Resource-Policy: cross-origin

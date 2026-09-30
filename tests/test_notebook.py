@@ -33,6 +33,8 @@ def test_notebook_headless_app_run():
 
     # Core reactive controls and DAG nodes
     expected_defs = [
+        "load_full_db",
+        "catalog_status",
         "raw_catalog_df",
         "source_name",
         "cohort_picker",
@@ -56,6 +58,8 @@ def test_notebook_headless_app_run():
 
     for d in expected_defs:
         assert d in defs, f"Expected definition '{d}' missing from defs namespace"
+
+    assert defs["load_full_db"].value is False
 
     # Verify quantitative properties of calculated values
     assert len(defs["raw_catalog_df"]) > 0
@@ -147,4 +151,33 @@ def test_pyodide_standalone_html_export():
     assert index_path.exists(), f"reports/index.html missing at {index_path}"
     assert index_path.stat().st_size > 30000, f"reports/index.html too small ({index_path.stat().st_size} bytes)"
     assert "<!DOCTYPE html>" in index_path.read_text(encoding="utf-8")
+
+
+def test_notebook_lazy_loading_full_catalog():
+    """Verify that toggling load_full_db loads the 40k+ compact catalog."""
+    import asyncio
+    import marimo as mo
+    import pandas as pd
+    from notebooks.anime_notebook import app, load_resilient_catalog
+
+    outputs, defs = app.run()
+    assert defs["load_full_db"].value is False
+
+    # Simulate checking the lazy load toggle
+    toggle_true = mo.ui.checkbox(value=True, label="Test Full Catalog")
+    repo_root = defs["repo_root"]
+    embedded = defs["EMBEDDED_CATALOG"]
+
+    _, defs_out = asyncio.run(
+        load_resilient_catalog.run(
+            EMBEDDED_CATALOG=embedded,
+            load_full_db=toggle_true,
+            pd=pd,
+            repo_root=repo_root,
+        )
+    )
+
+    assert len(defs_out["raw_catalog_df"]) >= 40000
+    assert "40" in defs_out["source_name"] or "Compact" in defs_out["source_name"]
+    assert "Loaded" in defs_out["catalog_status"] or "Catalog" in defs_out["catalog_status"]
 
