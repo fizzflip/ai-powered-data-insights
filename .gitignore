@@ -5,20 +5,41 @@ build/
 dist/
 wheels/
 *.egg-info
+.pytest_cache/
+.coverage
+htmlcov/
 
 # Virtual environments
 .venv
 
-# Secrets
+# Secrets & Local Environment
 .env
 .omg/
-.pytest_cache/
 
-# Core dumps
+# Core dumps & OS files
 core
 core.*
 *.core
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
 
-# Marimo local cache
+# SQLite temporary and journal files
+*.db-wal
+*.db-shm
+*.db-journal
+
+# Marimo local caches and static export bundles
 __marimo__/
 notebooks/__marimo__/
+reports/__marimo__/
+reports/assets/
+reports/CLAUDE.md
+
+# Netlify local cache and build artifacts
+.netlify/
+
+# Temporary directories
+outputs/
+scratch/

@@ -11,9 +11,9 @@ Follows a multi-signal priority rule with standard Japanese catalog default.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import logging
 import re
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger("origin_classifier")
@@ -22,12 +22,13 @@ logger = logging.getLogger("origin_classifier")
 @dataclass(frozen=True)
 class OriginClassificationResult:
     """Immutable result of origin classification cascade."""
-    origin_cohort: str      # 'jp' or 'non-jp'
-    sub_origin: str         # 'JP', 'CN', 'KR', 'WESTERN', 'OTHER'
-    is_jp: int              # 1 for JP, 0 for Non-JP
-    detection_level: int    # 1 (metadata) to 5 (default fallback)
-    rule_name: str          # Descriptive identifier of triggered rule
-    confidence: float       # Confidence score [0.50, 1.00]
+
+    origin_cohort: str  # 'jp' or 'non-jp'
+    sub_origin: str  # 'JP', 'CN', 'KR', 'WESTERN', 'OTHER'
+    is_jp: int  # 1 for JP, 0 for Non-JP
+    detection_level: int  # 1 (metadata) to 5 (default fallback)
+    rule_name: str  # Descriptive identifier of triggered rule
+    confidence: float  # Confidence score [0.50, 1.00]
 
 
 class AnimeOriginClassifier:
@@ -124,7 +125,6 @@ class AnimeOriginClassifier:
         "l²studio": ("non-jp", "CN", 0),
         "chongzhuo animation": ("non-jp", "CN", 0),
         "recolored animation": ("non-jp", "CN", 0),
-
         # Korean Studios
         "studio mir": ("non-jp", "KR", 0),
         "dr movie": ("non-jp", "KR", 0),
@@ -134,7 +134,6 @@ class AnimeOriginClassifier:
         "iconix entertainment": ("non-jp", "KR", 0),
         "studio animal": ("non-jp", "KR", 0),
         "studio ppuri": ("non-jp", "KR", 0),
-
         # Western Studios
         "rooster teeth": ("non-jp", "WESTERN", 0),
         "powerhouse animation studios": ("non-jp", "WESTERN", 0),
@@ -142,7 +141,6 @@ class AnimeOriginClassifier:
         "frederator studios": ("non-jp", "WESTERN", 0),
         "fortiche production": ("non-jp", "WESTERN", 0),
         "nickelodeon animation studio": ("non-jp", "WESTERN", 0),
-
         # Japanese Studios (Prominent anchors)
         "toei animation": ("jp", "JP", 1),
         "sunrise": ("jp", "JP", 1),
@@ -183,7 +181,9 @@ class AnimeOriginClassifier:
         :return: OriginClassificationResult
         """
         if not isinstance(record, dict):
-            return OriginClassificationResult("jp", "JP", 1, 5, "default_invalid_record", 0.50)
+            return OriginClassificationResult(
+                "jp", "JP", 1, 5, "default_invalid_record", 0.50
+            )
 
         # Level 1: AniList countryOfOrigin or country
         country_raw = record.get("countryOfOrigin") or record.get("country")
@@ -191,26 +191,40 @@ class AnimeOriginClassifier:
             code = country_raw.strip().upper()
             if code in self.COUNTRY_MAP:
                 cohort, subtag, is_jp = self.COUNTRY_MAP[code]
-                return OriginClassificationResult(cohort, subtag, is_jp, 1, f"country_of_origin_{code}", 1.00)
+                return OriginClassificationResult(
+                    cohort, subtag, is_jp, 1, f"country_of_origin_{code}", 1.00
+                )
             is_jp = 1 if code == "JP" else 0
             cohort = "jp" if is_jp else "non-jp"
             subtag = "JP" if is_jp else "OTHER"
-            return OriginClassificationResult(cohort, subtag, is_jp, 1, f"country_of_origin_{code}", 0.90)
+            return OriginClassificationResult(
+                cohort, subtag, is_jp, 1, f"country_of_origin_{code}", 0.90
+            )
 
         # Level 2: Tag keywords & Source Material
-        source_mat = str(record.get("source") or record.get("source_material") or "").upper()
+        source_mat = str(
+            record.get("source") or record.get("source_material") or ""
+        ).upper()
         if source_mat == "MANHUA":
-            return OriginClassificationResult("non-jp", "CN", 0, 2, "source_manhua", 0.95)
+            return OriginClassificationResult(
+                "non-jp", "CN", 0, 2, "source_manhua", 0.95
+            )
         elif source_mat in ("MANHWA", "WEBTOON"):
-            return OriginClassificationResult("non-jp", "KR", 0, 2, "source_manhwa", 0.95)
+            return OriginClassificationResult(
+                "non-jp", "KR", 0, 2, "source_manhwa", 0.95
+            )
         elif source_mat == "COMIC":
-            return OriginClassificationResult("non-jp", "WESTERN", 0, 2, "source_comic", 0.90)
+            return OriginClassificationResult(
+                "non-jp", "WESTERN", 0, 2, "source_comic", 0.90
+            )
 
         tag_text = self._extract_tag_text(record)
         if tag_text:
             for pattern, cohort, subtag, is_jp, rule_id in self.TAG_PATTERNS:
                 if pattern.search(tag_text):
-                    return OriginClassificationResult(cohort, subtag, is_jp, 2, rule_id, 0.85)
+                    return OriginClassificationResult(
+                        cohort, subtag, is_jp, 2, rule_id, 0.85
+                    )
 
         # Level 3: Known Studio Provenance
         studios = self._extract_studio_names(record)
@@ -218,16 +232,22 @@ class AnimeOriginClassifier:
             s_clean = studio.strip().lower()
             if s_clean in self.STUDIO_REGISTRY:
                 cohort, subtag, is_jp = self.STUDIO_REGISTRY[s_clean]
-                return OriginClassificationResult(cohort, subtag, is_jp, 3, f"studio_{s_clean}", 0.80)
+                return OriginClassificationResult(
+                    cohort, subtag, is_jp, 3, f"studio_{s_clean}", 0.80
+                )
 
         # Level 4: Unicode Script Detection on native titles & synonyms
         title_text = self._extract_title_text(record)
         if self.RE_HANGUL.search(title_text):
-            return OriginClassificationResult("non-jp", "KR", 0, 4, "script_hangul", 0.75)
+            return OriginClassificationResult(
+                "non-jp", "KR", 0, 4, "script_hangul", 0.75
+            )
         if self.RE_KANA.search(title_text):
             return OriginClassificationResult("jp", "JP", 1, 4, "script_kana", 0.75)
         if self.RE_BOPOMOFO.search(title_text):
-            return OriginClassificationResult("non-jp", "CN", 0, 4, "script_bopomofo", 0.75)
+            return OriginClassificationResult(
+                "non-jp", "CN", 0, 4, "script_bopomofo", 0.75
+            )
 
         # Level 5: Default Fallback to Japanese domestic baseline
         return OriginClassificationResult("jp", "JP", 1, 5, "default_fallback_jp", 0.50)
@@ -304,6 +324,12 @@ class AnimeOriginClassifier:
 
         return " ".join(parts)
 
+    # Alias for method naming convenience
+    classify = classify_record
+
+
+# Alias class name
+OriginClassifier = AnimeOriginClassifier
 
 # Module-level convenience singleton
 _DEFAULT_CLASSIFIER = AnimeOriginClassifier()

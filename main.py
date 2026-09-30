@@ -195,6 +195,14 @@ def parse_arguments() -> argparse.Namespace:
         action="store_true",
         help="Run Marimo server without automatically opening browser",
     )
+    parser.add_argument(
+        "--export-json",
+        nargs="?",
+        const="data/raw_anime_data.json",
+        default=None,
+        metavar="JSON_PATH",
+        help="Export all current SQLite anime records to portable JSON file (supports .json and .json.gz)",
+    )
 
     return parser.parse_args()
 
@@ -205,14 +213,28 @@ def main() -> int:
 
     if args.notebook:
         import subprocess
+
         repo_root = os.path.dirname(os.path.abspath(__file__))
-        notebook_path = os.path.join(repo_root, "anime_notebook.py")
+        notebook_path = os.path.join(repo_root, "notebooks", "anime_notebook.py")
         if not os.path.exists(notebook_path):
-            notebook_path = os.path.join(repo_root, "notebooks", "anime_notebook.py")
-        cmd = [sys.executable, "-m", "marimo", args.notebook, notebook_path, "--port", str(args.port)]
+            notebook_path = os.path.join(repo_root, "anime_notebook.py")
+        cmd = [
+            sys.executable,
+            "-m",
+            "marimo",
+            args.notebook,
+            notebook_path,
+            "--port",
+            str(args.port),
+        ]
         if args.headless:
             cmd.append("--headless")
-        logger.info("Launching Marimo reactive notebook (%s mode) on port %d: %s", args.notebook, args.port, " ".join(cmd))
+        logger.info(
+            "Launching Marimo reactive notebook (%s mode) on port %d: %s",
+            args.notebook,
+            args.port,
+            " ".join(cmd),
+        )
         try:
             return subprocess.call(cmd)
         except KeyboardInterrupt:
@@ -221,26 +243,55 @@ def main() -> int:
 
     if args.dashboard:
         import subprocess
+
         repo_root = os.path.dirname(os.path.abspath(__file__))
-        notebook_path = os.path.join(repo_root, "dashboard.py")
+        notebook_path = os.path.join(repo_root, "notebooks", "anime_dashboard.py")
         if not os.path.exists(notebook_path):
-            notebook_path = os.path.join(repo_root, "notebooks", "anime_dashboard.py")
-        cmd = [sys.executable, "-m", "marimo", args.dashboard, notebook_path, "--port", str(args.port)]
+            notebook_path = os.path.join(repo_root, "dashboard.py")
+        cmd = [
+            sys.executable,
+            "-m",
+            "marimo",
+            args.dashboard,
+            notebook_path,
+            "--port",
+            str(args.port),
+        ]
         if args.headless:
             cmd.append("--headless")
-        logger.info("Launching Marimo dashboard (%s mode) on port %d: %s", args.dashboard, args.port, " ".join(cmd))
+        logger.info(
+            "Launching Marimo dashboard (%s mode) on port %d: %s",
+            args.dashboard,
+            args.port,
+            " ".join(cmd),
+        )
         try:
             return subprocess.call(cmd)
         except KeyboardInterrupt:
             logger.info("Marimo dashboard stopped by user.")
             return 0
 
+    if args.export_json:
+        from src.database import AnimeCatalogDB
+
+        db = AnimeCatalogDB(args.db_path)
+        count = db.export_to_json(args.export_json)
+        print(f"Exported {count} records from SQLite to {args.export_json}")
+        return 0
+
     if args.run_scaling_steps:
-        from scripts.demonstrate_scaling import run_incremental_scaling_demonstration
+        from src.benchmark import run_incremental_scaling_demonstration
+
         try:
-            sample_steps = [int(s.strip()) for s in args.step_samples.split(",") if s.strip()]
+            sample_steps = [
+                int(s.strip()) for s in args.step_samples.split(",") if s.strip()
+            ]
         except ValueError as e:
-            logger.error("Invalid format for --step-samples. Expected comma-separated integers, got %r: %s", args.step_samples, e)
+            logger.error(
+                "Invalid format for --step-samples. Expected comma-separated integers, got %r: %s",
+                args.step_samples,
+                e,
+            )
             return 1
         return run_incremental_scaling_demonstration(
             sample_steps=sample_steps,
@@ -260,7 +311,9 @@ def main() -> int:
         print("=" * 65)
         print(f"File processed: {stats['file_path']}")
         print(f"Total anime items parsed: {stats['total_items_processed']}")
-        print(f"External platform mappings indexed: {stats['external_mappings_indexed']}")
+        print(
+            f"External platform mappings indexed: {stats['external_mappings_indexed']}"
+        )
         print(f"Franchise relationship edges indexed: {stats['relations_indexed']}")
         print(f"Initial catalog size: {stats['initial_catalog_records']}")
         print(f"New anime records added: {stats['new_records_added']}")
@@ -276,6 +329,7 @@ def main() -> int:
 
     if args.deduplicate:
         from src.database import AnimeCatalogDB
+
         db = AnimeCatalogDB(args.db_path)
         stats = db.thorough_deduplicate()
         db.export_to_json("data/raw_anime_data.json")
@@ -283,8 +337,9 @@ def main() -> int:
         return 0
 
     if args.parallel_harvest:
-        from scripts.harvest_10k import ParallelAnimeHarvester, run_pipeline_reanalysis
+        from src.harvester import ParallelAnimeHarvester, run_pipeline_reanalysis
         from src.database import AnimeCatalogDB
+
         db = AnimeCatalogDB(args.db_path)
         harvester = ParallelAnimeHarvester(
             db=db,
@@ -330,9 +385,13 @@ def main() -> int:
             print("=" * 65)
             print(f"Total anime analyzed: {results['num_samples']}")
             print(f"  • Japanese Domestic (JP): {results['num_jp']} titles")
-            print(f"  • Overseas / International (Non-JP): {results['num_non_jp']} titles")
+            print(
+                f"  • Overseas / International (Non-JP): {results['num_non_jp']} titles"
+            )
             print(f"Total in SQLite database: {results['db_total_count']}")
-            print(f"Optimal cluster counts: JP k={results['k_optimal']['jp']}, Non-JP k={results['k_optimal']['non_jp']}")
+            print(
+                f"Optimal cluster counts: JP k={results['k_optimal']['jp']}, Non-JP k={results['k_optimal']['non_jp']}"
+            )
             print("\nJapanese Domestic Archetypes:")
             for cid, arch in results["archetype_labels"]["jp"].items():
                 print(f"  • Cluster {cid}: {arch}")
@@ -340,7 +399,9 @@ def main() -> int:
             for cid, arch in results["archetype_labels"]["non_jp"].items():
                 print(f"  • Cluster {cid}: {arch}")
             if results.get("figure_paths"):
-                print(f"\nGenerated {len(results['figure_paths'])} comparative and cohort figures in:")
+                print(
+                    f"\nGenerated {len(results['figure_paths'])} comparative and cohort figures in:"
+                )
                 print(f"  • {os.path.join(args.output_dir, 'figures_compare')}")
                 print(f"  • {os.path.join(args.output_dir, 'figures_jp')}")
                 print(f"  • {os.path.join(args.output_dir, 'figures_non_jp')}")
@@ -357,9 +418,13 @@ def main() -> int:
             print("Empirical Archetypes Discovered:")
             for cid, arch in results["archetype_labels"].items():
                 print(f"  • Cluster {cid}: {arch}")
-            print(f"DBSCAN: {results['dbscan_clusters']} dense clusters, {results['dbscan_noise']} noise points")
+            print(
+                f"DBSCAN: {results['dbscan_clusters']} dense clusters, {results['dbscan_noise']} noise points"
+            )
             if results.get("figure_paths"):
-                print(f"Generated {len(results['figure_paths'])} visualization figures in: {config.figures_dir}")
+                print(
+                    f"Generated {len(results['figure_paths'])} visualization figures in: {config.figures_dir}"
+                )
             print(f"Detailed analytical report saved to: {results['report_path']}")
             print("=" * 65 + "\n")
         return 0

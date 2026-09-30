@@ -15,33 +15,33 @@
 
 | Step   |   Catalog Size (N) | Search Range   |   Anchor Target | Optimal k   |   Silhouette Score |   Inertia (WCSS) | Unique Archetypes   | Latency   |
 |--------|--------------------|----------------|-----------------|-------------|--------------------|------------------|---------------------|-----------|
-| Step 1 |                150 | [3, 5]         |               4 | **3**       |             0.1477 |          1229.66 | 3 / 3 (100%)        | 0.29s     |
-| Step 2 |                600 | [5, 7]         |               6 | **5**       |             0.1088 |          4370.12 | 5 / 5 (100%)        | 0.33s     |
-| Step 3 |              1,998 | [7, 9]         |               8 | **7**       |             0.0961 |         13604.5  | 7 / 7 (100%)        | 0.87s     |
+| Step 1 |                150 | [3, 5]         |               4 | **3**       |             0.1701 |          1242.05 | 3 / 3 (100%)        | 0.35s     |
+| Step 2 |                600 | [5, 7]         |               6 | **5**       |             0.1133 |          4431.29 | 5 / 5 (100%)        | 0.37s     |
+| Step 3 |              1,998 | [7, 9]         |               8 | **7**       |             0.0897 |         13884    | 7 / 7 (100%)        | 1.16s     |
 
 ---
 
 ## 2. Empirical Archetype Evolution by Database Volume
 ### Step 1 Archetypes (N = 150, $k$ = 3)
-- **Cluster 0**: Specialized Archetype (Action Focus)
-- **Cluster 1**: Modern Hits (Contemporary Drama)
-- **Cluster 2**: Classics (Historical Favorites)
+- **Cluster 0**: Specialized Archetype (Drama Focus) [Male Protagonist • High Reach]
+- **Cluster 1**: Specialized Archetype (Action Focus)
+- **Cluster 2**: Specialized Archetype (Drama Focus) [Male Protagonist • Core Reach]
 
 ### Step 2 Archetypes (N = 600, $k$ = 5)
-- **Cluster 0**: Specialized Archetype (Drama Focus)
-- **Cluster 1**: Modern Hits (Contemporary Drama)
-- **Cluster 2**: Classics (Legacy Masterworks - High Devotion)
-- **Cluster 3**: Low-Profile (Commercial Mid-Tier & Long-Tail)
-- **Cluster 4**: Modern Hits (Blockbuster Action)
+- **Cluster 0**: Modern Hits (Contemporary Comedy)
+- **Cluster 1**: Classics (Legacy Masterworks - High Devotion)
+- **Cluster 2**: Specialized Archetype (Drama Focus)
+- **Cluster 3**: Modern Hits (Contemporary Drama)
+- **Cluster 4**: Low-Profile (Commercial Mid-Tier & Long-Tail)
 
 ### Step 3 Archetypes (N = 1,998, $k$ = 7)
-- **Cluster 0**: Low-Profile (Commercial Mid-Tier & Long-Tail)
-- **Cluster 1**: Specialized Archetype (Comedy Focus)
-- **Cluster 2**: Modern Hits (Blockbuster Drama)
+- **Cluster 0**: Specialized Archetype (Comedy Focus)
+- **Cluster 1**: Low-Profile (Commercial Mid-Tier & Long-Tail)
+- **Cluster 2**: Classics (Legacy Masterworks - High Devotion)
 - **Cluster 3**: Specialized Archetype (Drama Focus)
-- **Cluster 4**: Classics (Historical Favorites)
-- **Cluster 5**: Modern Hits (Blockbuster Action)
-- **Cluster 6**: Classics (Legacy Masterworks - High Devotion)
+- **Cluster 4**: Modern Hits (Blockbuster Drama)
+- **Cluster 5**: Specialized Archetype (Action Focus)
+- **Cluster 6**: Classics (Historical Favorites)
 
 ---
 

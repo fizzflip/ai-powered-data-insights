@@ -1,0 +1,64 @@
+# Netlify Production Configuration for ai-powered-data-insights
+[build]
+  publish = "reports"
+  command = "uv run marimo export html-wasm notebooks/anime_notebook.py --output reports/index.html --mode run --no-sandbox --force --single-file"
+
+[build.environment]
+  PYTHON_VERSION = "3.11"
+
+# Route Navigation: Clean URLs for reports and interactive apps
+[[redirects]]
+  from = "/notebook"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/pyodide"
+  to = "/anime_notebook.pyodide.html"
+  status = 200
+
+[[redirects]]
+  from = "/dashboard"
+  to = "/anime_dashboard.html"
+  status = 200
+
+[[redirects]]
+  from = "/figures/*"
+  to = "/figures/:splat"
+  status = 200
+
+# Global Security & Cross-Origin Isolation Headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Embedder-Policy = "credentialless"
+    Access-Control-Allow-Origin = "*"
+
+# Immutable caching for WebAssembly binaries and Python wheels
+[[headers]]
+  for = "/*.wasm"
+  [headers.values]
+    Content-Type = "application/wasm"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.whl"
+  [headers.values]
+    Content-Type = "application/octet-stream"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Static figures caching
+[[headers]]
+  for = "/figures/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+# HTML Entry Points: Always revalidate to avoid serving stale notebook DAG code
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

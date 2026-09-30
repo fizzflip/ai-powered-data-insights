@@ -48,7 +48,9 @@ class PreprocessedData:
     @property
     def categorical_features(self) -> List[str]:
         """Names of one-hot encoded categorical features (source, season)."""
-        excluded = set(self.numerical_features + self.genre_features + self.tag_features)
+        excluded = set(
+            self.numerical_features + self.genre_features + self.tag_features
+        )
         return [f for f in self.feature_names if f not in excluded]
 
 
@@ -222,7 +224,9 @@ class DataPreprocessor:
         self.feature_names: List[str] = []
         self._is_fitted: bool = False
 
-    def _prepare_cleaned_df(self, df: pd.DataFrame, is_fit: bool = False) -> pd.DataFrame:
+    def _prepare_cleaned_df(
+        self, df: pd.DataFrame, is_fit: bool = False
+    ) -> pd.DataFrame:
         """Impute missing values and perform feature engineering."""
         df_clean = df.copy()
         n_rows = len(df_clean)
@@ -242,13 +246,17 @@ class DataPreprocessor:
         if "source" not in df_clean.columns:
             df_clean["source"] = "UNKNOWN"
         else:
-            df_clean["source"] = df_clean["source"].fillna("UNKNOWN").astype(str).str.strip()
+            df_clean["source"] = (
+                df_clean["source"].fillna("UNKNOWN").astype(str).str.strip()
+            )
             df_clean.loc[df_clean["source"] == "", "source"] = "UNKNOWN"
 
         if "season" not in df_clean.columns:
             df_clean["season"] = "UNKNOWN"
         else:
-            df_clean["season"] = df_clean["season"].fillna("UNKNOWN").astype(str).str.strip().str.upper()
+            df_clean["season"] = (
+                df_clean["season"].fillna("UNKNOWN").astype(str).str.strip().str.upper()
+            )
             df_clean.loc[df_clean["season"] == "", "season"] = "UNKNOWN"
 
         if "genres" not in df_clean.columns:
@@ -275,7 +283,9 @@ class DataPreprocessor:
 
             if is_fit:
                 median = df_clean[col].median()
-                self.medians_[col] = float(median) if not pd.isna(median) else default_val
+                self.medians_[col] = (
+                    float(median) if not pd.isna(median) else default_val
+                )
 
             df_clean[col] = df_clean[col].fillna(self.medians_.get(col, default_val))
 
@@ -283,7 +293,9 @@ class DataPreprocessor:
             if col not in df_clean.columns:
                 df_clean[col] = 0.0
             else:
-                df_clean[col] = pd.to_numeric(df_clean[col], errors="coerce").fillna(0.0)
+                df_clean[col] = pd.to_numeric(df_clean[col], errors="coerce").fillna(
+                    0.0
+                )
 
         if is_fit:
             self.min_year_ = float(df_clean["seasonYear"].min())
@@ -296,20 +308,32 @@ class DataPreprocessor:
 
         year_denom = (self.max_year_ - self.min_year_) + 1e-6
         df_clean["recency"] = (df_clean["seasonYear"] - self.min_year_) / year_denom
-        df_clean["favorites_ratio"] = df_clean["favourites"] / (df_clean["popularity"] + 1.0)
+        df_clean["favorites_ratio"] = df_clean["favourites"] / (
+            df_clean["popularity"] + 1.0
+        )
 
         # Origin classification annotation
-        if "origin_cohort" not in df_clean.columns or "sub_origin" not in df_clean.columns:
+        if (
+            "origin_cohort" not in df_clean.columns
+            or "sub_origin" not in df_clean.columns
+        ):
             from src.origin_classifier import classify_anime_origin
 
             # Fast path: vectorized check if is_jp is present and valid
             if "is_jp" in df_clean.columns and df_clean["is_jp"].notna().all():
-                is_jp_arr = pd.to_numeric(df_clean["is_jp"], errors="coerce").fillna(1).astype(int).to_numpy()
+                is_jp_arr = (
+                    pd.to_numeric(df_clean["is_jp"], errors="coerce")
+                    .fillna(1)
+                    .astype(int)
+                    .to_numpy()
+                )
                 df_clean["origin_cohort"] = np.where(is_jp_arr == 1, "jp", "non-jp")
                 country_col = df_clean.get("country_code")
                 if country_col is not None:
                     fallback_country = np.where(is_jp_arr == 1, "JP", "OTHER")
-                    df_clean["sub_origin"] = country_col.fillna(pd.Series(fallback_country, index=df_clean.index)).astype(str)
+                    df_clean["sub_origin"] = country_col.fillna(
+                        pd.Series(fallback_country, index=df_clean.index)
+                    ).astype(str)
                 else:
                     df_clean["sub_origin"] = np.where(is_jp_arr == 1, "JP", "OTHER")
             else:
@@ -324,11 +348,20 @@ class DataPreprocessor:
 
                     if cohort_val and str(cohort_val) in ("jp", "non-jp"):
                         cohorts.append(str(cohort_val))
-                        suborigins.append(str(sub_val) if sub_val else ("JP" if cohort_val == "jp" else "OTHER"))
+                        suborigins.append(
+                            str(sub_val)
+                            if sub_val
+                            else ("JP" if cohort_val == "jp" else "OTHER")
+                        )
                     elif is_jp_val is not None and not pd.isna(is_jp_val):
                         is_jp_int = int(is_jp_val)
                         cohorts.append("jp" if is_jp_int == 1 else "non-jp")
-                        suborigins.append(str(row_dict.get("country_code") or ("JP" if is_jp_int == 1 else "OTHER")))
+                        suborigins.append(
+                            str(
+                                row_dict.get("country_code")
+                                or ("JP" if is_jp_int == 1 else "OTHER")
+                            )
+                        )
                     else:
                         res = classify_anime_origin(row_dict)
                         cohorts.append(res.origin_cohort)
@@ -356,10 +389,12 @@ class DataPreprocessor:
         binned_source = df_clean["source"].apply(
             lambda s: s if s in self.top_sources_ else "OTHER"
         )
-        cat_df = pd.DataFrame({
-            "source": binned_source,
-            "season": df_clean["season"],
-        })
+        cat_df = pd.DataFrame(
+            {
+                "source": binned_source,
+                "season": df_clean["season"],
+            }
+        )
         self.one_hot_encoder.fit(cat_df)
         self.categorical_features = list(
             self.one_hot_encoder.get_feature_names_out(["source", "season"])
@@ -396,15 +431,19 @@ class DataPreprocessor:
         """Transform pre-cleaned DataFrame using fitted transformers."""
         n_rows = len(df_clean)
 
-        X_num = self.scaler.transform(df_clean[self.numerical_features].to_numpy(dtype=np.float64))
+        X_num = self.scaler.transform(
+            df_clean[self.numerical_features].to_numpy(dtype=np.float64)
+        )
 
         binned_source = df_clean["source"].apply(
             lambda s: s if s in self.top_sources_ else "OTHER"
         )
-        cat_df = pd.DataFrame({
-            "source": binned_source,
-            "season": df_clean["season"],
-        })
+        cat_df = pd.DataFrame(
+            {
+                "source": binned_source,
+                "season": df_clean["season"],
+            }
+        )
         X_cat = self.one_hot_encoder.transform(cat_df).astype(np.float64)
 
         if len(self.mlb.classes_) > 0:
@@ -425,7 +464,9 @@ class DataPreprocessor:
         else:
             X = np.zeros((n_rows, 0), dtype=np.float64)
 
-        extra_cols = [c for c in df_clean.columns if c not in self.REQUIRED_RAW_METADATA_COLS]
+        extra_cols = [
+            c for c in df_clean.columns if c not in self.REQUIRED_RAW_METADATA_COLS
+        ]
         final_cols = self.REQUIRED_RAW_METADATA_COLS + extra_cols
         ordered_df = df_clean[[c for c in final_cols if c in df_clean.columns]].copy()
 
@@ -449,7 +490,9 @@ class DataPreprocessor:
     def transform(self, df: pd.DataFrame) -> PreprocessedData:
         """Transform input DataFrame into PreprocessedData."""
         if not self._is_fitted:
-            raise RuntimeError("DataPreprocessor must be fitted before calling transform().")
+            raise RuntimeError(
+                "DataPreprocessor must be fitted before calling transform()."
+            )
 
         df_clean = self._prepare_cleaned_df(df, is_fit=False)
         return self._transform_from_cleaned(df_clean)

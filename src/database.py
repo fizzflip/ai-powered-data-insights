@@ -9,6 +9,7 @@ synchronization to data/raw_anime_data.json for offline portability.
 from __future__ import annotations
 
 import datetime
+import gzip
 import json
 import logging
 import os
@@ -103,9 +104,13 @@ class AnimeCatalogDB:
             cursor.execute("PRAGMA table_info(anime_records);")
             cols = {row["name"] for row in cursor.fetchall()}
             if "country_code" not in cols:
-                cursor.execute("ALTER TABLE anime_records ADD COLUMN country_code TEXT DEFAULT 'JP';")
+                cursor.execute(
+                    "ALTER TABLE anime_records ADD COLUMN country_code TEXT DEFAULT 'JP';"
+                )
             if "is_jp" not in cols:
-                cursor.execute("ALTER TABLE anime_records ADD COLUMN is_jp INTEGER DEFAULT 1;")
+                cursor.execute(
+                    "ALTER TABLE anime_records ADD COLUMN is_jp INTEGER DEFAULT 1;"
+                )
 
             cursor.execute(
                 """
@@ -159,13 +164,22 @@ class AnimeCatalogDB:
                 "CREATE INDEX IF NOT EXISTS idx_anime_country ON anime_records(country_code);"
             )
             cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_anime_is_jp_pop ON anime_records(is_jp, popularity DESC);"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_anime_country_pop ON anime_records(country_code, popularity DESC);"
+            )
+            cursor.execute(
                 "CREATE INDEX IF NOT EXISTS idx_ext_map_anime ON external_mappings(anime_id);"
             )
             cursor.execute(
                 "CREATE INDEX IF NOT EXISTS idx_relations_target ON anime_relations(target_id);"
             )
             conn.commit()
-        logger.debug("Initialized SQLite database with relations, mappings & origin fields at %s", self.db_path)
+        logger.debug(
+            "Initialized SQLite database with relations, mappings & origin fields at %s",
+            self.db_path,
+        )
 
     @staticmethod
     def _normalize_record_id(record: Dict[str, Any], source_api: str) -> str:
@@ -244,7 +258,10 @@ class AnimeCatalogDB:
                 (anime_id,),
             )
             return [
-                {"external_site": row["external_site"], "external_id": row["external_id"]}
+                {
+                    "external_site": row["external_site"],
+                    "external_id": row["external_id"],
+                }
                 for row in cursor.fetchall()
             ]
 
@@ -413,9 +430,18 @@ class AnimeCatalogDB:
                         continue
 
                     def record_score(row: sqlite3.Row) -> Tuple[int, int, float, int]:
-                        src_priority = 3 if row["source_api"] == "anilist" else (2 if row["source_api"] == "kitsu" else 1)
+                        src_priority = (
+                            3
+                            if row["source_api"] == "anilist"
+                            else (2 if row["source_api"] == "kitsu" else 1)
+                        )
                         has_pop = 1 if (row["popularity"] or 0) > 0 else 0
-                        return (src_priority, has_pop, float(row["average_score"] or 0), int(row["json_len"] or 0))
+                        return (
+                            src_priority,
+                            has_pop,
+                            float(row["average_score"] or 0),
+                            int(row["json_len"] or 0),
+                        )
 
                     sorted_cands = sorted(candidates, key=record_score, reverse=True)
                     winner_id = sorted_cands[0]["id"]
@@ -426,7 +452,10 @@ class AnimeCatalogDB:
                             "UPDATE OR IGNORE external_mappings SET anime_id = ? WHERE anime_id = ?",
                             (winner_id, loser_id),
                         )
-                        cursor.execute("DELETE FROM external_mappings WHERE anime_id = ?", (loser_id,))
+                        cursor.execute(
+                            "DELETE FROM external_mappings WHERE anime_id = ?",
+                            (loser_id,),
+                        )
                         cursor.execute(
                             "UPDATE OR IGNORE anime_relations SET source_id = ? WHERE source_id = ?",
                             (winner_id, loser_id),
@@ -439,7 +468,9 @@ class AnimeCatalogDB:
                             "DELETE FROM anime_relations WHERE source_id = ? OR target_id = ?",
                             (loser_id, loser_id),
                         )
-                        cursor.execute("DELETE FROM anime_records WHERE id = ?", (loser_id,))
+                        cursor.execute(
+                            "DELETE FROM anime_records WHERE id = ?", (loser_id,)
+                        )
                         deterministic_id_merged += 1
                         cross_source_merged += 1
 
@@ -561,9 +592,12 @@ class AnimeCatalogDB:
 
                 genres_str = json.dumps(genres if isinstance(genres, list) else [])
                 tags_str = json.dumps(tags if isinstance(tags, list) else [])
-                studios_str = json.dumps(studios if isinstance(studios, (dict, list)) else {})
+                studios_str = json.dumps(
+                    studios if isinstance(studios, (dict, list)) else {}
+                )
 
                 from src.origin_classifier import classify_anime_origin
+
                 origin_res = classify_anime_origin(rec)
                 country_code = origin_res.sub_origin
                 is_jp = origin_res.is_jp
@@ -751,10 +785,16 @@ class AnimeCatalogDB:
                         studios = s_val or "UNKNOWN"
 
                     is_jp_val = int(row["is_jp"]) if row["is_jp"] is not None else 1
-                    c_code = str(row["country_code"]) if row["country_code"] else ("JP" if is_jp_val == 1 else "OTHER")
+                    c_code = (
+                        str(row["country_code"])
+                        if row["country_code"]
+                        else ("JP" if is_jp_val == 1 else "OTHER")
+                    )
 
                     rec = {
-                        "id": row["external_id"] if row["external_id"] is not None and row["external_id"] > 0 else row["id"],
+                        "id": row["external_id"]
+                        if row["external_id"] is not None and row["external_id"] > 0
+                        else row["id"],
                         "canonical_id": row["id"],
                         "source_api": row["source_api"],
                         "title": {
@@ -799,9 +839,13 @@ class AnimeCatalogDB:
                         item["country_code"] = row["country_code"]
                         item["is_jp"] = row["is_jp"]
                         if "origin_cohort" not in item:
-                            item["origin_cohort"] = "jp" if row["is_jp"] == 1 else "non-jp"
+                            item["origin_cohort"] = (
+                                "jp" if row["is_jp"] == 1 else "non-jp"
+                            )
                         if "sub_origin" not in item:
-                            item["sub_origin"] = row["country_code"] or ("JP" if row["is_jp"] == 1 else "OTHER")
+                            item["sub_origin"] = row["country_code"] or (
+                                "JP" if row["is_jp"] == 1 else "OTHER"
+                            )
                     records.append(item)
                 except json.JSONDecodeError:
                     continue
@@ -820,7 +864,9 @@ class AnimeCatalogDB:
             if force:
                 cursor.execute("SELECT id, raw_json FROM anime_records")
             else:
-                cursor.execute("SELECT id, raw_json FROM anime_records WHERE country_code IS NULL OR country_code = 'JP'")
+                cursor.execute(
+                    "SELECT id, raw_json FROM anime_records WHERE country_code IS NULL OR country_code = 'JP'"
+                )
             rows = cursor.fetchall()
 
             updates = []
@@ -836,7 +882,9 @@ class AnimeCatalogDB:
                     stats["jp"] += 1
                 else:
                     stats["non_jp"] += 1
-                stats["suborigins"][res.sub_origin] = stats["suborigins"].get(res.sub_origin, 0) + 1
+                stats["suborigins"][res.sub_origin] = (
+                    stats["suborigins"].get(res.sub_origin, 0) + 1
+                )
 
             cursor.executemany(
                 "UPDATE anime_records SET country_code = ?, is_jp = ? WHERE id = ?",
@@ -847,15 +895,19 @@ class AnimeCatalogDB:
         return stats
 
     def export_to_json(self, json_path: str = "data/raw_anime_data.json") -> int:
-        """Export all current records to portable JSON file for offline demonstration."""
+        """Export all current records to portable JSON file (or .json.gz) for offline demonstration."""
         records = self.get_all_records()
         if not records:
             return 0
 
         target_file = os.path.abspath(json_path)
         os.makedirs(os.path.dirname(target_file), exist_ok=True)
-        with open(target_file, "w", encoding="utf-8") as f:
-            json.dump(records, f, indent=2, ensure_ascii=False)
+        if target_file.endswith(".gz"):
+            with gzip.open(target_file, "wt", encoding="utf-8") as f:
+                json.dump(records, f, indent=2, ensure_ascii=False)
+        else:
+            with open(target_file, "w", encoding="utf-8") as f:
+                json.dump(records, f, indent=2, ensure_ascii=False)
         logger.info("Exported %d records from SQLite to %s", len(records), target_file)
         return len(records)
 
@@ -864,14 +916,21 @@ class AnimeCatalogDB:
         json_path: str = "data/raw_anime_data.json",
         source_api: str = "anilist",
     ) -> int:
-        """Import existing JSON records into SQLite if database is empty."""
+        """Import existing JSON or .json.gz records into SQLite if database is empty."""
         target_file = os.path.abspath(json_path)
         if not os.path.exists(target_file):
-            return 0
+            if os.path.exists(target_file + ".gz"):
+                target_file = target_file + ".gz"
+            else:
+                return 0
 
         try:
-            with open(target_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
+            if target_file.endswith(".gz"):
+                with gzip.open(target_file, "rt", encoding="utf-8") as f:
+                    data = json.load(f)
+            else:
+                with open(target_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
             if isinstance(data, list) and len(data) > 0:
                 inserted, updated = self.upsert_records(data, source_api=source_api)
                 logger.info(

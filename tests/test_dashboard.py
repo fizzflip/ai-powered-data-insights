@@ -14,10 +14,8 @@ def test_marimo_static_check():
     """Verify marimo check passes with zero DAG circularities, syntax errors, or collisions."""
     repo_root = Path(__file__).resolve().parent.parent
     notebook_path = repo_root / "notebooks" / "anime_dashboard.py"
-    shim_path = repo_root / "dashboard.py"
 
     assert notebook_path.exists(), f"Notebook file missing at {notebook_path}"
-    assert shim_path.exists(), f"Root shim missing at {shim_path}"
 
     res_nb = subprocess.run(
         [sys.executable, "-m", "marimo", "check", str(notebook_path)],
@@ -25,13 +23,6 @@ def test_marimo_static_check():
         text=True,
     )
     assert res_nb.returncode == 0, f"marimo check failed on notebook:\n{res_nb.stderr}"
-
-    res_shim = subprocess.run(
-        [sys.executable, "-m", "marimo", "check", str(shim_path)],
-        capture_output=True,
-        text=True,
-    )
-    assert res_shim.returncode == 0, f"marimo check failed on root shim:\n{res_shim.stderr}"
 
 
 def test_dashboard_headless_app_run():
@@ -95,14 +86,11 @@ def test_static_html_dashboard_export():
 
 
 def test_dashboard_real_file_integrity():
-    """Verify root dashboard.py is a real, non-empty file (not a symlink) with valid content."""
+    """Verify notebooks/anime_dashboard.py is a real, non-empty file (not a symlink) with valid content."""
     repo_root = Path(__file__).resolve().parent.parent
     notebook_path = repo_root / "notebooks" / "anime_dashboard.py"
-    shim_path = repo_root / "dashboard.py"
 
-    assert notebook_path.exists()
-    assert shim_path.exists()
-    assert not shim_path.is_symlink(), "dashboard.py must be a real file, not a brittle symlink"
-    assert shim_path.stat().st_size > 10000, f"dashboard.py is suspiciously small ({shim_path.stat().st_size} bytes)"
-    assert notebook_path.read_text(encoding="utf-8") == shim_path.read_text(encoding="utf-8")
+    assert notebook_path.exists(), f"anime_dashboard.py missing at {notebook_path}"
+    assert not notebook_path.is_symlink(), "notebooks/anime_dashboard.py must be a real file, not a brittle symlink"
+    assert notebook_path.stat().st_size > 10000, f"anime_dashboard.py is suspiciously small ({notebook_path.stat().st_size} bytes)"
 

@@ -9,6 +9,7 @@ deduplication and feature engineering without external API rate limits.
 
 from __future__ import annotations
 
+import gzip
 import json
 import logging
 import os
@@ -17,6 +18,7 @@ import time
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from src.database import AnimeCatalogDB
+from src.origin_classifier import OriginClassifier
 
 logger = logging.getLogger("offline_indexer")
 
@@ -61,8 +63,13 @@ class OfflineIndexer:
         "livechart": re.compile(r"livechart\.me/anime/(\d+)"),
     }
 
-    def __init__(self, db: Optional[AnimeCatalogDB] = None):
+    def __init__(
+        self,
+        db: Optional[AnimeCatalogDB] = None,
+        origin_classifier: Optional[OriginClassifier] = None,
+    ):
         self.db = db or AnimeCatalogDB()
+        self.origin_classifier = origin_classifier or OriginClassifier()
 
     def _extract_site_id(self, url: str) -> Optional[Tuple[str, str]]:
         """Extract (site, external_id) from URL."""
@@ -92,16 +99,31 @@ class OfflineIndexer:
                     site_map[site] = ext_id
 
         if "anilist" in site_map:
-            ext_int = int(site_map["anilist"]) if site_map["anilist"].isdigit() else line_idx
+            ext_int = (
+                int(site_map["anilist"]) if site_map["anilist"].isdigit() else line_idx
+            )
             return f"anilist:{site_map['anilist']}", "anilist", ext_int, mappings
         elif "myanimelist" in site_map:
-            ext_int = int(site_map["myanimelist"]) if site_map["myanimelist"].isdigit() else line_idx
-            return f"myanimelist:{site_map['myanimelist']}", "myanimelist", ext_int, mappings
+            ext_int = (
+                int(site_map["myanimelist"])
+                if site_map["myanimelist"].isdigit()
+                else line_idx
+            )
+            return (
+                f"myanimelist:{site_map['myanimelist']}",
+                "myanimelist",
+                ext_int,
+                mappings,
+            )
         elif "kitsu" in site_map:
-            ext_int = int(site_map["kitsu"]) if site_map["kitsu"].isdigit() else line_idx
+            ext_int = (
+                int(site_map["kitsu"]) if site_map["kitsu"].isdigit() else line_idx
+            )
             return f"kitsu:{site_map['kitsu']}", "kitsu", ext_int, mappings
         elif "anidb" in site_map:
-            ext_int = int(site_map["anidb"]) if site_map["anidb"].isdigit() else line_idx
+            ext_int = (
+                int(site_map["anidb"]) if site_map["anidb"].isdigit() else line_idx
+            )
             return f"anidb:{site_map['anidb']}", "anidb", ext_int, mappings
         else:
             return f"manami:{line_idx}", "manami", line_idx, mappings
@@ -149,8 +171,7 @@ class OfflineIndexer:
         studios_raw = item.get("studios") or []
         studios = {
             "nodes": [
-                {"name": str(s).title(), "isAnimationStudio": True}
-                for s in studios_raw
+                {"name": str(s).title(), "isAnimationStudio": True} for s in studios_raw
             ]
         }
 
@@ -195,16 +216,28 @@ class OfflineIndexer:
         """
         abs_path = os.path.abspath(jsonl_path)
         if not os.path.exists(abs_path):
-            raise FileNotFoundError(f"Offline database file not found at: {abs_path}")
+            if os.path.exists(abs_path + ".gz"):
+                abs_path = abs_path + ".gz"
+            elif abs_path.endswith(".gz") and os.path.exists(abs_path[:-3]):
+                abs_path = abs_path[:-3]
+            else:
+                raise FileNotFoundError(f"Offline database file not found at: {abs_path}")
 
         t0 = time.time()
         logger.info("Starting offline database indexing from: %s", abs_path)
 
         url_to_canon: Dict[str, str] = {}
-        items_metadata: List[Tuple[int, Dict[str, Any], str, str, int, List[Tuple[str, str]]]] = []
+        items_metadata: List[
+            Tuple[int, Dict[str, Any], str, str, int, List[Tuple[str, str]]]
+        ] = []
 
         line_count = 0
-        with open(abs_path, "r", encoding="utf-8") as f:
+        open_fn = (
+            lambda p: gzip.open(p, "rt", encoding="utf-8")
+            if p.endswith(".gz")
+            else open(p, "r", encoding="utf-8")
+        )
+        with open_fn(abs_path) as f:
             first_line = f.readline()
             try:
                 header = json.loads(first_line)
@@ -213,7 +246,9 @@ class OfflineIndexer:
                 else:
                     # Not a header, treat as record
                     item = header
-                    cid, src, eid, mappings = self._determine_canonical_id(item.get("sources", []), 1)
+                    cid, src, eid, mappings = self._determine_canonical_id(
+                        item.get("sources", []), 1
+                    )
                     for s in item.get("sources", []):
                         url_to_canon[s] = cid
                     items_metadata.append((1, item, cid, src, eid, mappings))
@@ -234,7 +269,9 @@ class OfflineIndexer:
                     continue
 
                 sources = item.get("sources", [])
-                cid, src, eid, mappings = self._determine_canonical_id(sources, line_count)
+                cid, src, eid, mappings = self._determine_canonical_id(
+                    sources, line_count
+                )
                 for s in sources:
                     url_to_canon[s] = cid
                 items_metadata.append((line_count, item, cid, src, eid, mappings))
@@ -274,12 +311,19 @@ class OfflineIndexer:
                     if rel_url in url_to_canon:
                         target_cid = url_to_canon[rel_url]
                         if target_cid != cid:
-                            relations_batch.append((cid, target_cid, "related", "manami"))
-                            relations_batch.append((target_cid, cid, "related", "manami"))
+                            relations_batch.append(
+                                (cid, target_cid, "related", "manami")
+                            )
+                            relations_batch.append(
+                                (target_cid, cid, "related", "manami")
+                            )
 
                 # 3. Unrepresented anime records
                 if insert_unrepresented:
                     rec = self._convert_manami_to_record(item, cid, src, eid)
+                    res = self.origin_classifier.classify(rec)
+                    country_code = res.sub_origin
+                    is_jp = res.is_jp
                     raw_str = json.dumps(rec, ensure_ascii=False)
                     title_romaji = rec["title"]["romaji"]
                     title_english = rec["title"]["english"]
@@ -306,6 +350,8 @@ class OfflineIndexer:
                             rec["popularity"],
                             rec["favourites"],
                             raw_str,
+                            country_code,
+                            is_jp,
                         )
                     )
 
@@ -332,8 +378,8 @@ class OfflineIndexer:
                             id, source_api, external_id, title_romaji, title_english,
                             season_year, season, episodes, duration, genres_json,
                             tags_json, studios_json, source_material, average_score,
-                            popularity, favourites, raw_json
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            popularity, favourites, raw_json, country_code, is_jp
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         records_batch,
                     )
@@ -361,8 +407,8 @@ class OfflineIndexer:
                         id, source_api, external_id, title_romaji, title_english,
                         season_year, season, episodes, duration, genres_json,
                         tags_json, studios_json, source_material, average_score,
-                        popularity, favourites, raw_json
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        popularity, favourites, raw_json, country_code, is_jp
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     records_batch,
                 )

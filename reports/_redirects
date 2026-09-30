@@ -1,0 +1,4 @@
+/notebook    /index.html                     200
+/pyodide     /anime_notebook.pyodide.html   200
+/dashboard   /anime_dashboard.html           200
+/figures/*   /figures/:splat                 200

@@ -19,6 +19,7 @@ from sklearn.metrics import silhouette_score
 @dataclass(frozen=True)
 class ClusteringResult:
     """Encapsulates clustering models, scores, archetypes, and cluster profiles."""
+
     k_optimal: int
     kmeans_labels: np.ndarray
     dbscan_labels: np.ndarray
@@ -28,7 +29,6 @@ class ClusteringResult:
     cluster_profiles: pd.DataFrame
     dbscan_n_clusters: int
     dbscan_n_noise: int
-
 
 
 def compute_adaptive_k_range(
@@ -54,11 +54,13 @@ def compute_adaptive_k_range(
         floor_val = max(1, min_allowed)
         return (floor_val, max(floor_val, n_samples - 1), floor_val)
 
-    target = int(np.clip(
-        np.floor(1.15 * (float(n_samples) ** 0.26)),
-        min_allowed + 1,
-        max_allowed - 1,
-    ))
+    target = int(
+        np.clip(
+            np.floor(1.15 * (float(n_samples) ** 0.26)),
+            min_allowed + 1,
+            max_allowed - 1,
+        )
+    )
 
     eff_min = max(min_allowed, target - 1)
     eff_max = min(max_allowed, n_samples - 1, target + 1)
@@ -187,6 +189,7 @@ class AnimeClusterer:
         n_samples, n_features = X_arr.shape
         if n_features > 8 and n_samples > 8:
             from sklearn.decomposition import PCA
+
             n_comp = min(6, n_samples - 1, n_features)
             X_db = PCA(n_components=n_comp, random_state=42).fit_transform(X_arr)
         else:
@@ -291,10 +294,14 @@ class AnimeClusterer:
         labels_arr = np.asarray(cluster_labels)
 
         year_s = self._extract_series(
-            df, ["seasonYear", "year", "start_year", "release_year", "startYear"], default_val=2015.0
+            df,
+            ["seasonYear", "year", "start_year", "release_year", "startYear"],
+            default_val=2015.0,
         )
         score_s = self._extract_series(
-            df, ["averageScore", "score", "mean_score", "meanScore", "rating"], default_val=70.0
+            df,
+            ["averageScore", "score", "mean_score", "meanScore", "rating"],
+            default_val=70.0,
         )
         if score_s.max() <= 10.0 and score_s.max() > 0:
             score_s = score_s * 10.0
@@ -303,12 +310,19 @@ class AnimeClusterer:
             df, ["popularity", "members", "user_count"], default_val=1000.0
         )
 
-        if any(c in df.columns for c in ["favorites_ratio", "fav_ratio", "favourites_ratio"]):
+        if any(
+            c in df.columns
+            for c in ["favorites_ratio", "fav_ratio", "favourites_ratio"]
+        ):
             fav_ratio_s = self._extract_series(
-                df, ["favorites_ratio", "fav_ratio", "favourites_ratio"], default_val=0.0
+                df,
+                ["favorites_ratio", "fav_ratio", "favourites_ratio"],
+                default_val=0.0,
             )
         else:
-            fav_s = self._extract_series(df, ["favourites", "favorites"], default_val=0.0)
+            fav_s = self._extract_series(
+                df, ["favourites", "favorites"], default_val=0.0
+            )
             fav_ratio_s = (fav_s / pop_s.replace(0, np.nan)).fillna(0.0)
 
         unique_clusters = [c for c in sorted(np.unique(labels_arr)) if c != -1]
@@ -316,7 +330,9 @@ class AnimeClusterer:
             unique_clusters = [0]
 
         stats: Dict[int, Dict[str, Any]] = {}
-        genre_col = next((c for c in df.columns if c.lower() in ["genres", "genre"]), None)
+        genre_col = next(
+            (c for c in df.columns if c.lower() in ["genres", "genre"]), None
+        )
         tag_col = next((c for c in df.columns if c.lower() in ["tags", "tag"]), None)
 
         for cid in unique_clusters:
@@ -329,8 +345,16 @@ class AnimeClusterer:
             c_fav = float(fav_ratio_s[mask].mean())
             c_size = int(np.sum(mask))
 
-            top_genres = self._extract_top_tokens(df.loc[mask, genre_col], top_n=3) if genre_col else "Various"
-            top_tags = self._extract_top_tokens(df.loc[mask, tag_col], top_n=3) if tag_col else "General"
+            top_genres = (
+                self._extract_top_tokens(df.loc[mask, genre_col], top_n=3)
+                if genre_col
+                else "Various"
+            )
+            top_tags = (
+                self._extract_top_tokens(df.loc[mask, tag_col], top_n=3)
+                if tag_col
+                else "General"
+            )
 
             stats[cid] = {
                 "year": c_year,
@@ -345,7 +369,11 @@ class AnimeClusterer:
         all_pop = [s["popularity"] for s in stats.values()]
         all_fav = [s["favorites_ratio"] for s in stats.values()]
         pop_median = float(np.median(all_pop)) if all_pop else 1.0
-        pop_high = float(np.percentile(all_pop, 70)) if len(all_pop) > 2 else (max(all_pop) * 0.8 if all_pop else 1.0)
+        pop_high = (
+            float(np.percentile(all_pop, 70))
+            if len(all_pop) > 2
+            else (max(all_pop) * 0.8 if all_pop else 1.0)
+        )
         fav_median = float(np.median(all_fav)) if all_fav else 0.01
 
         archetype_labels: Dict[int, str] = {}
@@ -368,11 +396,17 @@ class AnimeClusterer:
             for dup_label, count in label_counts.items():
                 if count <= 1:
                     continue
-                colliding_cids = [cid for cid, lab in archetype_labels.items() if lab == dup_label]
+                colliding_cids = [
+                    cid for cid, lab in archetype_labels.items() if lab == dup_label
+                ]
                 for idx, cid in enumerate(colliding_cids):
                     s = stats[cid]
-                    tags_list = [t.strip() for t in s["top_tags"].split(",") if t.strip()]
-                    genres_list = [g.strip() for g in s["top_genres"].split(",") if g.strip()]
+                    tags_list = [
+                        t.strip() for t in s["top_tags"].split(",") if t.strip()
+                    ]
+                    genres_list = [
+                        g.strip() for g in s["top_genres"].split(",") if g.strip()
+                    ]
 
                     diff_trait = ""
                     if len(tags_list) > idx:
@@ -391,7 +425,9 @@ class AnimeClusterer:
                     else:
                         reach_trait = "Broad Reach"
 
-                    archetype_labels[cid] = f"{dup_label} [{diff_trait} • {reach_trait}]"
+                    archetype_labels[cid] = (
+                        f"{dup_label} [{diff_trait} • {reach_trait}]"
+                    )
 
         # Final uniqueness guarantee fallback
         seen_labels: set = set()
@@ -404,23 +440,27 @@ class AnimeClusterer:
         profile_rows = []
         for cid in sorted(stats.keys()):
             s = stats[cid]
-            profile_rows.append({
-                "cluster_id": cid,
-                "archetype": archetype_labels[cid],
-                "size": s["size"],
-                "score": round(s["score"], 2),
-                "mean_score": s["score"],
-                "popularity": round(s["popularity"], 1),
-                "mean_popularity": s["popularity"],
-                "year": int(round(s["year"])),
-                "median_year": s["year"],
-                "favorites_ratio": round(s["favorites_ratio"], 4),
-                "mean_favorites_ratio": s["favorites_ratio"],
-                "top_genres": s["top_genres"],
-                "top_tags": s["top_tags"],
-            })
+            profile_rows.append(
+                {
+                    "cluster_id": cid,
+                    "archetype": archetype_labels[cid],
+                    "size": s["size"],
+                    "score": round(s["score"], 2),
+                    "mean_score": s["score"],
+                    "popularity": round(s["popularity"], 1),
+                    "mean_popularity": s["popularity"],
+                    "year": int(round(s["year"])),
+                    "median_year": s["year"],
+                    "favorites_ratio": round(s["favorites_ratio"], 4),
+                    "mean_favorites_ratio": s["favorites_ratio"],
+                    "top_genres": s["top_genres"],
+                    "top_tags": s["top_tags"],
+                }
+            )
 
-        cluster_profiles = pd.DataFrame(profile_rows).sort_values("cluster_id").reset_index(drop=True)
+        cluster_profiles = (
+            pd.DataFrame(profile_rows).sort_values("cluster_id").reset_index(drop=True)
+        )
         return archetype_labels, cluster_profiles
 
     def run_clustering(
@@ -472,7 +512,9 @@ class AnimeClusterer:
         km_model = self.fit_kmeans(X_arr, k=k_optimal)
         kmeans_labels = km_model.labels_
 
-        db_model = self.fit_dbscan(X_arr, eps=dbscan_eps, min_samples=dbscan_min_samples)
+        db_model = self.fit_dbscan(
+            X_arr, eps=dbscan_eps, min_samples=dbscan_min_samples
+        )
         dbscan_labels = db_model.labels_
         dbscan_n_clusters = len(set(dbscan_labels) - {-1})
         dbscan_n_noise = int(np.sum(dbscan_labels == -1))

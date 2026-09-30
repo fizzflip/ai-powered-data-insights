@@ -11,6 +11,7 @@ Powered by **AniList GraphQL**, **Kitsu REST API**, **SQLite Incremental Storage
 Traditional anime exploration relies heavily on simple genre filters (e.g., "Action", "Romance") or superficial popularity rankings. This project employs unsupervised machine learning to uncover organic behavioral groupings, mapping anime into empirical, data-driven archetypes without artificial 1-to-1 label constraints.
 
 ### 🌟 Key Enhancements in Iteration 3
+
 1. **Dynamic Cluster Scaling ($k$) with Database Volume**:
    - The candidate search window $[k_{\min}(N), k_{\max}(N)]$ and optimal cluster count dynamically adapt to database size $N$ using a sub-linear power-law heuristic:
      $$k_{\text{target}}(N) = \text{clip}\left(\left\lfloor 1.15 \cdot N^{0.26} \right\rfloor, 3, 10\right), \quad k_{\min} = \max(2, k_{\text{target}} - 1), \quad k_{\max} = \min(N-1, 12, k_{\text{target}} + 1)$$
@@ -119,6 +120,7 @@ ai-powered-data-insights/
 Ensure Python `>= 3.12` is installed.
 
 ### Using `uv` (Recommended)
+
 ```bash
 # Clone the repository and enter directory
 cd /home/mrbot/.temp/ai-powered-data-insights
@@ -128,6 +130,7 @@ uv sync
 ```
 
 ### Using standard `pip`
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
@@ -139,60 +142,68 @@ pip install -r requirements.txt
 ## 💻 Usage & CLI Options
 
 ### Run Default Pipeline (Auto source, 500 records)
+
 ```bash
 python main.py
 ```
 
 ### Fetch Incrementally from Kitsu REST API
+
 ```bash
 python main.py --source kitsu --samples 100
 ```
 
 ### Run Completely Offline (Using Local SQLite Database)
+
 ```bash
 python main.py --offline
 ```
 
 ### Slow / Polite Crawling (Avoiding API Bans)
+
 ```bash
 python main.py --samples 1000 --rate-delay 1.2
 ```
 
 ### Force Fresh Fetch from APIs (Bypassing Local Cache)
+
 ```bash
 python main.py --force-fetch --samples 500
 ```
 
 ### Run Multi-Step Incremental Database Scaling Benchmark
+
 ```bash
 python main.py --run-scaling-steps
 ```
 
 ### Run Adaptive Clustering (Auto-scaling k with dataset size)
+
 ```bash
 python main.py --offline --adaptive-k
 ```
 
 ### Available CLI Options
-| Flag | Type | Default | Description |
-| :--- | :---: | :---: | :--- |
-| `--samples` | `int` | `500` | Target number of anime records to retrieve/analyze |
-| `--k` | `int` | `5` | Force specific number of K-Means clusters (set to `0` for auto-k) |
-| `--adaptive-k` | `flag` | `False` | Dynamically scale candidate $[k_{\min}, k_{\max}]$ and optimal $k$ based on sample size $N$ |
-| `--run-scaling-steps` | `flag` | `False` | Execute 3-step incremental DB scaling benchmark and generate progression report |
-| `--step-samples` | `str` | `150,600,1998` | Comma-separated sample slices for incremental benchmark |
-| `--source` | `str` | `auto` | Data source: `auto` (AniList -> Kitsu fallback), `anilist`, or `kitsu` |
-| `--rate-delay` | `float` | `0.6` | Polite inter-request delay (seconds) to prevent API bans |
-| `--db-path` | `path` | `data/anime_catalog.db` | Path to SQLite incremental database |
-| `--min-k` | `int` | `2` | Minimum $k$ for Elbow and Silhouette evaluation |
-| `--max-k` | `int` | `10` | Maximum $k$ for Elbow and Silhouette evaluation |
-| `--dbscan-eps` | `float` | `1.2` | DBSCAN neighborhood radius ($\epsilon$) |
-| `--dbscan-min-samples` | `int` | `4` | DBSCAN minimum core samples |
-| `--force-fetch` | `flag` | `False` | Ignore local cache and fetch fresh data from APIs |
-| `--offline` | `flag` | `False` | Run purely offline from SQLite database or mock |
-| `--no-incremental` | `flag` | `False` | Do not resume pagination (restart from page 1) |
-| `--output-dir` | `path` | `reports` | Target directory for report and figures |
-| `--no-plots` | `flag` | `False` | Skip figure generation (fast text-only mode) |
+
+| Flag                   |  Type   |         Default         | Description                                                                                 |
+| :--------------------- | :-----: | :---------------------: | :------------------------------------------------------------------------------------------ |
+| `--samples`            |  `int`  |          `500`          | Target number of anime records to retrieve/analyze                                          |
+| `--k`                  |  `int`  |           `5`           | Force specific number of K-Means clusters (set to `0` for auto-k)                           |
+| `--adaptive-k`         | `flag`  |         `False`         | Dynamically scale candidate $[k_{\min}, k_{\max}]$ and optimal $k$ based on sample size $N$ |
+| `--run-scaling-steps`  | `flag`  |         `False`         | Execute 3-step incremental DB scaling benchmark and generate progression report             |
+| `--step-samples`       |  `str`  |     `150,600,1998`      | Comma-separated sample slices for incremental benchmark                                     |
+| `--source`             |  `str`  |         `auto`          | Data source: `auto` (AniList -> Kitsu fallback), `anilist`, or `kitsu`                      |
+| `--rate-delay`         | `float` |          `0.6`          | Polite inter-request delay (seconds) to prevent API bans                                    |
+| `--db-path`            | `path`  | `data/anime_catalog.db` | Path to SQLite incremental database                                                         |
+| `--min-k`              |  `int`  |           `2`           | Minimum $k$ for Elbow and Silhouette evaluation                                             |
+| `--max-k`              |  `int`  |          `10`           | Maximum $k$ for Elbow and Silhouette evaluation                                             |
+| `--dbscan-eps`         | `float` |          `1.2`          | DBSCAN neighborhood radius ($\epsilon$)                                                     |
+| `--dbscan-min-samples` |  `int`  |           `4`           | DBSCAN minimum core samples                                                                 |
+| `--force-fetch`        | `flag`  |         `False`         | Ignore local cache and fetch fresh data from APIs                                           |
+| `--offline`            | `flag`  |         `False`         | Run purely offline from SQLite database or mock                                             |
+| `--no-incremental`     | `flag`  |         `False`         | Do not resume pagination (restart from page 1)                                              |
+| `--output-dir`         | `path`  |        `reports`        | Target directory for report and figures                                                     |
+| `--no-plots`           | `flag`  |         `False`         | Skip figure generation (fast text-only mode)                                                |
 
 ---
 
@@ -200,24 +211,26 @@ python main.py --offline --adaptive-k
 
 By avoiding rigid 1-to-1 Hungarian mapping, clusters are described by their true centroid coordinates:
 
-| Cluster | Discovered Empirical Archetype | Catalog Share | Median Year | Mean Score | Mean Popularity | Favorites Ratio | Defining Traits & Exemplars |
-| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| **0** | **Low-Profile (Commercial Mid-Tier & Long-Tail)** | 32.0% | 2018 | 67.7 | 91,905 | 0.014 | Long-tail sequels & adaptations (*The Promised Neverland S2*, *Shield Hero S2*). |
-| **1** | **Modern Hits (Contemporary Comedy)** | 31.3% | 2018 | 76.5 | 160,458 | 0.023 | Modern character comedy & action ensembles (*My Hero Academia S2*, *One Punch Man*). |
-| **2** | **Modern Hits (Blockbuster Drama)** | 20.7% | 2019 | 81.1 | 349,494 | 0.041 | Massive mainstream blockbusters (*Demon Slayer*, *JUJUTSU KAISEN*, *Tokyo Ghoul*). |
-| **3** | **Specialized Archetype (Drama Focus)** | 10.8% | 2016 | 79.5 | 158,348 | 0.029 | Theatrical emotional masterpieces (*A Silent Voice*, *Your Name.*, *Mugen Train*). |
-| **4** | **Classics (Legacy Masterworks - High Devotion)** | 5.2% | 2004 | 82.6 | 343,116 | 0.061 | High-devotion foundational masterworks (*Attack on Titan*, *Death Note*, *Hunter x Hunter*). |
+| Cluster | Discovered Empirical Archetype                    | Catalog Share | Median Year | Mean Score | Mean Popularity | Favorites Ratio | Defining Traits & Exemplars                                                                  |
+| :-----: | :------------------------------------------------ | :-----------: | :---------: | :--------: | :-------------: | :-------------: | :------------------------------------------------------------------------------------------- |
+|  **0**  | **Low-Profile (Commercial Mid-Tier & Long-Tail)** |     32.0%     |    2018     |    67.7    |     91,905      |      0.014      | Long-tail sequels & adaptations (_The Promised Neverland S2_, _Shield Hero S2_).             |
+|  **1**  | **Modern Hits (Contemporary Comedy)**             |     31.3%     |    2018     |    76.5    |     160,458     |      0.023      | Modern character comedy & action ensembles (_My Hero Academia S2_, _One Punch Man_).         |
+|  **2**  | **Modern Hits (Blockbuster Drama)**               |     20.7%     |    2019     |    81.1    |     349,494     |      0.041      | Massive mainstream blockbusters (_Demon Slayer_, _JUJUTSU KAISEN_, _Tokyo Ghoul_).           |
+|  **3**  | **Specialized Archetype (Drama Focus)**           |     10.8%     |    2016     |    79.5    |     158,348     |      0.029      | Theatrical emotional masterpieces (_A Silent Voice_, _Your Name._, _Mugen Train_).           |
+|  **4**  | **Classics (Legacy Masterworks - High Devotion)** |     5.2%      |    2004     |    82.6    |     343,116     |      0.061      | High-devotion foundational masterworks (_Attack on Titan_, _Death Note_, _Hunter x Hunter_). |
 
 ---
 
 ## 🧪 Automated Testing
 
 Run the full pytest suite:
+
 ```bash
 uv run pytest -v
 ```
 
 18 automated tests across 7 modules validate:
+
 - **`test_scaling.py`**: Monotonic $k$ scaling bounds, variable-$k$ profiling safety, 100% archetype uniqueness, and 3-step incremental SQLite growth.
 - **`test_database.py`**: SQLite initialization, upsert deduplication, and bidirectional JSON export/import.
 - **`test_data_fetcher.py`**: Multi-source querying, rate-limit backoff, offline mock fallback.

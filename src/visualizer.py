@@ -6,31 +6,33 @@ dimensionality reduction projections (2D/3D PCA, 2D t-SNE), archetype heatmaps,
 and markdown summary tables.
 """
 
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
 import logging
 import warnings
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import matplotlib
 
 # Headless backend configuration for server/CLI environments
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 - required for 3d projection registration
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from mpl_toolkits.mplot3d import (
+    Axes3D,  # noqa: F401 - required for 3d projection registration
+)
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from tabulate import tabulate
 
 warnings.filterwarnings("ignore", message=".*Glyph.*missing from font.*")
-warnings.filterwarnings("ignore", message=".*The set_bad function will be deprecated.*")
+from src.visualization_base import BaseVisualizer
 
 logger = logging.getLogger(__name__)
 
 
-class ClusterVisualizer:
+class ClusterVisualizer(BaseVisualizer):
     """Visualizer for clustering metrics, latent projections, and archetype profiles."""
 
     def __init__(
@@ -53,27 +55,9 @@ class ClusterVisualizer:
         dpi : int, default=150
             Rasterization dots per inch for saved figure outputs.
         """
-        self.style = style
+        super().__init__(style=style, dpi=dpi)
         self.palette_name = palette
         self.random_state = random_state
-        self.dpi = dpi
-        sns.set_theme(style=self.style)
-
-        # Suppress noisy font manager fallback logs and configure multi-language font cascade
-        logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
-        plt.rcParams["font.sans-serif"] = [
-            "DejaVu Sans",
-            "Noto Sans CJK JP",
-            "Noto Sans CJK SC",
-            "Noto Sans CJK KR",
-            "WenQuanYi Zen Hei",
-            "TakaoPGothic",
-            "IPAGothic",
-            "Arial Unicode MS",
-            "Arial",
-            "sans-serif",
-        ]
-        plt.rcParams["axes.unicode_minus"] = False
 
     @staticmethod
     def _sanitize_title(title: str, max_chars: int = 35) -> str:
@@ -414,7 +398,9 @@ class ClusterVisualizer:
 
         max_pca_comp = min(50, n_samples - 1, X_arr.shape[1])
         if X_arr.shape[1] > 50 and max_pca_comp >= 2:
-            X_reduced = PCA(n_components=max_pca_comp, random_state=seed).fit_transform(X_arr)
+            X_reduced = PCA(n_components=max_pca_comp, random_state=seed).fit_transform(
+                X_arr
+            )
         else:
             X_reduced = X_arr
 
@@ -426,7 +412,9 @@ class ClusterVisualizer:
                 lbl_indices = np.where(labels_arr == lbl)[0]
                 sample_n = max(5, int(len(lbl_indices) / n_samples * max_samples))
                 sub_indices.extend(
-                    rng.choice(lbl_indices, size=min(len(lbl_indices), sample_n), replace=False)
+                    rng.choice(
+                        lbl_indices, size=min(len(lbl_indices), sample_n), replace=False
+                    )
                 )
             sub_indices = np.array(sorted(sub_indices))
             X_tsne_input = X_reduced[sub_indices]
@@ -509,7 +497,8 @@ class ClusterVisualizer:
 
         ignored_cols = {"cluster", "cluster_id", "id", "count", "size", "n_samples"}
         numeric_cols = [
-            c for c in df.select_dtypes(include=[np.number]).columns
+            c
+            for c in df.select_dtypes(include=[np.number]).columns
             if str(c).lower() not in ignored_cols
         ]
         if not numeric_cols:
@@ -556,9 +545,7 @@ class ClusterVisualizer:
             return ""
 
         df = cluster_profiles.copy()
-        show_index = not (
-            isinstance(df.index, pd.RangeIndex) and df.index.name is None
-        )
+        show_index = not (isinstance(df.index, pd.RangeIndex) and df.index.name is None)
         return tabulate(
             df,
             headers="keys",
@@ -598,7 +585,9 @@ class ClusterVisualizer:
         if X is None:
             X = self._extract(clustering, ["X", "features", "data"])
 
-        titles = self._extract(preprocessed, ["titles", "title", "names", "anime_titles"])
+        titles = self._extract(
+            preprocessed, ["titles", "title", "names", "anime_titles"]
+        )
         if titles is None:
             raw_df = self._extract(preprocessed, ["df", "data_frame", "dataset"])
             if raw_df is not None and isinstance(raw_df, pd.DataFrame):
@@ -607,21 +596,37 @@ class ClusterVisualizer:
                         titles = raw_df[col].tolist()
                         break
 
-        labels = self._extract(clustering, ["labels", "kmeans_labels", "labels_", "cluster_labels", "clusters"])
+        labels = self._extract(
+            clustering,
+            ["labels", "kmeans_labels", "labels_", "cluster_labels", "clusters"],
+        )
         archetype_map = self._extract(
-            clustering, ["archetype_labels", "archetype_map", "archetypes", "cluster_names", "archetype_mapping"]
+            clustering,
+            [
+                "archetype_labels",
+                "archetype_map",
+                "archetypes",
+                "cluster_names",
+                "archetype_mapping",
+            ],
         )
         elbow_inertias = self._extract(
-            clustering, ["elbow_inertias", "inertias", "elbow_inertia", "inertia_scores"]
+            clustering,
+            ["elbow_inertias", "inertias", "elbow_inertia", "inertia_scores"],
         )
         silhouette_scores = self._extract(
-            clustering, ["silhouette_scores", "silhouettes", "silhouette_curve", "silhouette_values"]
+            clustering,
+            [
+                "silhouette_scores",
+                "silhouettes",
+                "silhouette_curve",
+                "silhouette_values",
+            ],
         )
-        k_optimal = self._extract(
-            clustering, ["k_optimal", "optimal_k", "best_k", "k"]
-        )
+        k_optimal = self._extract(clustering, ["k_optimal", "optimal_k", "best_k", "k"])
         cluster_profiles = self._extract(
-            clustering, ["cluster_profiles", "profiles", "summary_df", "cluster_summary"]
+            clustering,
+            ["cluster_profiles", "profiles", "summary_df", "cluster_summary"],
         )
 
         # 1. Elbow & Silhouette
@@ -645,18 +650,14 @@ class ClusterVisualizer:
         # 3. PCA 3D
         if X is not None and labels is not None:
             p = out_path / "pca_3d.png"
-            fig = self.plot_pca_3d(
-                X, labels, archetype_map=archetype_map, save_path=p
-            )
+            fig = self.plot_pca_3d(X, labels, archetype_map=archetype_map, save_path=p)
             plt.close(fig)
             saved_paths["pca_3d"] = str(p)
 
         # 4. t-SNE 2D
         if X is not None and labels is not None:
             p = out_path / "tsne_2d.png"
-            fig = self.plot_tsne_2d(
-                X, labels, archetype_map=archetype_map, save_path=p
-            )
+            fig = self.plot_tsne_2d(X, labels, archetype_map=archetype_map, save_path=p)
             plt.close(fig)
             saved_paths["tsne_2d"] = str(p)
 

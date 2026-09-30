@@ -14,10 +14,8 @@ def test_notebook_static_marimo_check():
     """Verify marimo check passes with zero DAG circularities, syntax errors, or collisions."""
     repo_root = Path(__file__).resolve().parent.parent
     notebook_path = repo_root / "notebooks" / "anime_notebook.py"
-    symlink_path = repo_root / "anime_notebook.py"
 
     assert notebook_path.exists(), f"Notebook file missing at {notebook_path}"
-    assert symlink_path.exists(), f"Root symlink missing at {symlink_path}"
 
     res_nb = subprocess.run(
         [sys.executable, "-m", "marimo", "check", str(notebook_path)],
@@ -25,13 +23,6 @@ def test_notebook_static_marimo_check():
         text=True,
     )
     assert res_nb.returncode == 0, f"marimo check failed on notebook:\n{res_nb.stderr}\n{res_nb.stdout}"
-
-    res_link = subprocess.run(
-        [sys.executable, "-m", "marimo", "check", str(symlink_path)],
-        capture_output=True,
-        text=True,
-    )
-    assert res_link.returncode == 0, f"marimo check failed on root symlink:\n{res_link.stderr}\n{res_link.stdout}"
 
 
 def test_notebook_headless_app_run():
@@ -106,18 +97,13 @@ def test_wasm_html_notebook_export():
 
 
 def test_notebook_real_file_integrity():
-    """Verify root anime_notebook.py is a real, non-empty file (not a symlink) with valid content."""
+    """Verify notebooks/anime_notebook.py is a real, non-empty file (not a symlink) with valid content."""
     repo_root = Path(__file__).resolve().parent.parent
     notebook_path = repo_root / "notebooks" / "anime_notebook.py"
-    root_path = repo_root / "anime_notebook.py"
 
-    assert root_path.exists(), f"anime_notebook.py missing at {root_path}"
-    assert not root_path.is_symlink(), "anime_notebook.py must be a real file, not a brittle symlink"
-    assert root_path.stat().st_size > 10000, f"anime_notebook.py is suspiciously small ({root_path.stat().st_size} bytes)"
-
-    if notebook_path.exists():
-        assert not notebook_path.is_symlink(), "notebooks/anime_notebook.py must not be a symlink"
-        assert root_path.read_text(encoding="utf-8") == notebook_path.read_text(encoding="utf-8")
+    assert notebook_path.exists(), f"anime_notebook.py missing at {notebook_path}"
+    assert not notebook_path.is_symlink(), "notebooks/anime_notebook.py must be a real file, not a brittle symlink"
+    assert notebook_path.stat().st_size > 10000, f"notebooks/anime_notebook.py is suspiciously small ({notebook_path.stat().st_size} bytes)"
 
 
 def test_notebook_academic_prose_and_zero_emojis():
@@ -125,12 +111,12 @@ def test_notebook_academic_prose_and_zero_emojis():
     import re
 
     repo_root = Path(__file__).resolve().parent.parent
-    root_path = repo_root / "anime_notebook.py"
-    content = root_path.read_text(encoding="utf-8")
+    notebook_path = repo_root / "notebooks" / "anime_notebook.py"
+    content = notebook_path.read_text(encoding="utf-8")
 
     # 1. Zero emojis
     emojis = re.findall(r"[\U00010000-\U0010ffff]|[\u2600-\u27bf]", content)
-    assert len(emojis) == 0, f"Found {len(emojis)} emojis in anime_notebook.py: {set(emojis)}"
+    assert len(emojis) == 0, f"Found {len(emojis)} emojis in notebooks/anime_notebook.py: {set(emojis)}"
 
     # 2. PEP 723 metadata header
     assert "# /// script" in content, "Missing PEP 723 script metadata header"
@@ -157,7 +143,8 @@ def test_pyodide_standalone_html_export():
     assert "vega-embed" in content
     assert "Empirical Latent Space" in content
 
-    # Check mirror
-    assert index_path.exists(), f"reports/index.html mirror missing at {index_path}"
-    assert index_path.stat().st_size == pyodide_path.stat().st_size
+    # Check index.html entry point
+    assert index_path.exists(), f"reports/index.html missing at {index_path}"
+    assert index_path.stat().st_size > 30000, f"reports/index.html too small ({index_path.stat().st_size} bytes)"
+    assert "<!DOCTYPE html>" in index_path.read_text(encoding="utf-8")
 
