@@ -666,47 +666,156 @@ async def load_resilient_catalog(EMBEDDED_CATALOG, load_full_db, pd, repo_root):
         if is_emscripten:
             # Browser WASM execution path via Pyodide pyfetch
             try:
+                import posixpath as _posixpath
+                import re as _re
                 from pyodide.http import pyfetch
+                import js as _js
 
-                target_urls = [
+                # -------------------------------------------------------------
+                # 1. Fully-Qualified Absolute URL Construction in Web Workers
+                # In Marimo WASM, the worker's self.location.href is a blob: URL
+                # (e.g. blob:http://localhost:8888/<uuid>). Relative URLs fail
+                # with "TypeError: Failed to construct 'Request'". We extract
+                # the true document origin and base path to construct absolute URLs.
+                # -------------------------------------------------------------
+                _origin = ""
+                _doc_path = ""
+
+                # Step 1a: Inspect Worker / Window location
+                try:
+                    _loc = getattr(_js, "location", None)
+                    if _loc:
+                        _raw_origin = str(getattr(_loc, "origin", "") or "")
+                        if _raw_origin and _raw_origin != "null" and _raw_origin.startswith(("http://", "https://")):
+                            _origin = _raw_origin.rstrip("/")
+
+                        _raw_href = str(getattr(_loc, "href", "") or "")
+                        if not _origin and _raw_href:
+                            _m = _re.search(r"https?://[^/]+", _raw_href)
+                            if _m:
+                                _origin = _m.group(0).rstrip("/")
+
+                        # Check pathname if href is a standard HTTP URL (non-blob)
+                        if _raw_href and not _raw_href.startswith("blob:"):
+                            _raw_pathname = str(getattr(_loc, "pathname", "") or "")
+                            if _raw_pathname and _raw_pathname != "/":
+                                _doc_path = _raw_pathname
+                except Exception:
+                    pass
+
+                # Step 1b: Inspect Document location if accessible (main thread / iframe)
+                try:
+                    _doc = getattr(_js, "document", None)
+                    if _doc and hasattr(_doc, "location"):
+                        _d_loc = _doc.location
+                        _d_origin = str(getattr(_d_loc, "origin", "") or "")
+                        if _d_origin and _d_origin != "null" and _d_origin.startswith(("http://", "https://")):
+                            _origin = _d_origin.rstrip("/")
+                        _d_pathname = str(getattr(_d_loc, "pathname", "") or "")
+                        if _d_pathname and _d_pathname != "/":
+                            _doc_path = _d_pathname
+                except Exception:
+                    pass
+
+                # Derive clean base directory (handles /notebook, /reports/index.html, subpaths)
+                _base_dir = ""
+                if _doc_path:
+                    _clean_p = _doc_path.split("?")[0].split("#")[0]
+                    if _clean_p.endswith((".html", ".htm")):
+                        _base_dir = _posixpath.dirname(_clean_p)
+                    else:
+                        _base_dir = _clean_p.rstrip("/")
+                    if _base_dir == "/":
+                        _base_dir = ""
+
+                # -------------------------------------------------------------
+                # 2. Multi-Tier Resilient Fetch Hierarchy
+                # -------------------------------------------------------------
+                _tier1_candidates = []
+                if _origin:
+                    if _base_dir:
+                        _tier1_candidates.append(f"{_origin}{_base_dir}/data/anime_catalog_compact.json.gz")
+                        _tier1_candidates.append(f"{_origin}{_base_dir}/reports/data/anime_catalog_compact.json.gz")
+                    _tier1_candidates.append(f"{_origin}/data/anime_catalog_compact.json.gz")
+                    _tier1_candidates.append(f"{_origin}/reports/data/anime_catalog_compact.json.gz")
+
+                _tier2_candidates = [
                     "./data/anime_catalog_compact.json.gz",
                     "data/anime_catalog_compact.json.gz",
                     "/data/anime_catalog_compact.json.gz",
+                    "./reports/data/anime_catalog_compact.json.gz",
+                    "/reports/data/anime_catalog_compact.json.gz",
                 ]
-                raw_bytes = None
-                fetch_error = None
-                for url in target_urls:
-                    try:
-                        resp = await pyfetch(url)
-                        if resp.status == 200:
-                            raw_bytes = await resp.bytes()
-                            break
-                    except Exception as e:
-                        fetch_error = e
 
-                if raw_bytes is not None:
+                _tier3_candidates = [
+                    "https://cdn.jsdelivr.net/gh/fizzflip/ai-powered-data-insights@master/reports/data/anime_catalog_compact.json.gz",
+                    "https://raw.githubusercontent.com/fizzflip/ai-powered-data-insights/master/reports/data/anime_catalog_compact.json.gz",
+                ]
+
+                def _dedup(urls):
+                    seen = set()
+                    out = []
+                    for u in urls:
+                        if u and u not in seen:
+                            seen.add(u)
+                            out.append(u)
+                    return out
+
+                _all_tiers = [
+                    ("Tier 1 (Worker-Derived Absolute URL)", _dedup(_tier1_candidates)),
+                    ("Tier 2 (Context-Relative URL)", _dedup(_tier2_candidates)),
+                    ("Tier 3 (Remote CDN Fallback)", _dedup(_tier3_candidates)),
+                ]
+
+                _raw_bytes = None
+                _successful_tier = None
+                _fetch_errors = []
+
+                for _tier_name, _candidates in _all_tiers:
+                    for _url in _candidates:
+                        try:
+                            _resp = await pyfetch(_url)
+                            if _resp.status == 200:
+                                _raw_bytes = await _resp.bytes()
+                                _successful_tier = _tier_name
+                                break
+                            else:
+                                _fetch_errors.append(f"{_url} -> HTTP {_resp.status}")
+                        except Exception as _e:
+                            _fetch_errors.append(f"{_url} -> {type(_e).__name__}: {_e}")
+                    if _raw_bytes is not None:
+                        break
+
+                if _raw_bytes is not None:
                     # Resilient decompression: handle raw gzip vs CDN transparent decompression
-                    if len(raw_bytes) >= 2 and raw_bytes[:2] == b"\x1f\x8b":
-                        decompressed = _gzip.decompress(raw_bytes)
+                    if len(_raw_bytes) >= 2 and _raw_bytes[:2] == b"\x1f\x8b":
+                        decompressed = _gzip.decompress(_raw_bytes)
                     else:
-                        decompressed = raw_bytes
+                        decompressed = _raw_bytes
 
                     records = _json.loads(decompressed.decode("utf-8"))
                     source_name = f"Manami Offline Database ({len(records):,} titles via Pyodide HTTP)"
-                    catalog_status = "Live 40k+ Catalog Ingested Successfully"
+                    catalog_status = f"Live 40k+ Catalog Ingested Successfully via {_successful_tier}"
                 else:
-                    catalog_status = f"Catalog Fetch Fallback: {fetch_error}"
+                    _last_err = _fetch_errors[-1] if _fetch_errors else "Unknown fetch failure"
+                    if not _origin or _origin == "null":
+                        catalog_status = f"Local file:// restricts live fetch ({_last_err}). Serve via python scripts/serve_netlify_preview.py"
+                    else:
+                        catalog_status = f"Catalog Fetch Fallback: {_last_err}"
             except Exception as ex:
                 catalog_status = f"Pyodide Fetch Error: {ex}"
 
         else:
             # Native desktop / CPython execution path via local filesystem
             local_json_gz = repo_root / "data" / "anime_catalog_compact.json.gz"
+            reports_json_gz = repo_root / "reports" / "data" / "anime_catalog_compact.json.gz"
             local_db = repo_root / "data" / "anime_catalog_compact.db"
 
-            if local_json_gz.exists():
+            target_gz = local_json_gz if local_json_gz.exists() else (reports_json_gz if reports_json_gz.exists() else None)
+
+            if target_gz and target_gz.exists():
                 try:
-                    with _gzip.open(local_json_gz, "rt", encoding="utf-8") as f:
+                    with _gzip.open(target_gz, "rt", encoding="utf-8") as f:
                         records = _json.load(f)
                     source_name = f"Local Compact Gzip Catalog ({len(records):,} titles)"
                     catalog_status = "Local Gzip Catalog Loaded"
@@ -882,7 +991,7 @@ def display_ingestion_controls(
     cohort_counts = raw_catalog_df["origin_cohort"].value_counts().to_dict()
     jp_n = cohort_counts.get("jp", 0)
     non_jp_n = cohort_counts.get("non-jp", 0)
-    callout_kind = "success" if load_full_db.value else "info"
+    callout_kind = "success" if (load_full_db.value and len(raw_catalog_df) >= 10000) else ("warn" if load_full_db.value else "info")
 
     status_card = mo.callout(
         mo.md(
