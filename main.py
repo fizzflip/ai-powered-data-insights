@@ -1,6 +1,175 @@
-def main():
-    print("Hello from ai-powered-data-insights!")
+#!/usr/bin/env python3
+"""
+CLI entry point for the Anime Unsupervised Clustering & Insights project.
+
+Features:
+- Multi-source ingestion: AniList GraphQL + Kitsu JSON:API fallback.
+- Incremental SQLite catalog database (data/anime_catalog.db) with JSON export sync.
+- Polite rate-limit throttling to prevent API bans during large dataset crawls.
+- Robust preprocessing, TF-IDF tag extraction, and continuous feature scaling.
+- Unsupervised clustering with strict empirical archetype profiling.
+- Latent space projections (PCA 2D/3D, t-SNE) and markdown findings reporting.
+"""
+
+import argparse
+import logging
+import os
+import sys
+
+# Ensure headless matplotlib backend before any visualizer import
+os.environ["MPLBACKEND"] = "Agg"
+
+from src.pipeline import InsightsPipeline, PipelineConfig
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger("main")
+
+
+def parse_arguments() -> argparse.Namespace:
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        description="Anime Unsupervised Clustering, Multi-Source Ingestion & Empirical Archetype Discovery",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+
+    parser.add_argument(
+        "--samples",
+        type=int,
+        default=500,
+        help="Target number of anime records to retrieve/analyze",
+    )
+    parser.add_argument(
+        "--k",
+        type=int,
+        default=5,
+        help="Number of K-Means clusters (set to 0 for automatic detection based on silhouette score)",
+    )
+    parser.add_argument(
+        "--min-k",
+        type=int,
+        default=2,
+        help="Minimum cluster count for Elbow and Silhouette evaluation",
+    )
+    parser.add_argument(
+        "--max-k",
+        type=int,
+        default=10,
+        help="Maximum cluster count for Elbow and Silhouette evaluation",
+    )
+    parser.add_argument(
+        "--source",
+        type=str,
+        default="auto",
+        choices=["auto", "anilist", "kitsu"],
+        help="API data source: 'auto' (AniList -> Kitsu fallback), 'anilist', or 'kitsu'",
+    )
+    parser.add_argument(
+        "--rate-delay",
+        type=float,
+        default=0.6,
+        help="Polite inter-request delay in seconds to avoid API rate limits and bans",
+    )
+    parser.add_argument(
+        "--db-path",
+        type=str,
+        default="data/anime_catalog.db",
+        help="Path to SQLite persistent incremental database",
+    )
+    parser.add_argument(
+        "--dbscan-eps",
+        type=float,
+        default=1.2,
+        help="DBSCAN epsilon neighborhood distance radius",
+    )
+    parser.add_argument(
+        "--dbscan-min-samples",
+        type=int,
+        default=4,
+        help="DBSCAN minimum samples per core cluster",
+    )
+    parser.add_argument(
+        "--force-fetch",
+        action="store_true",
+        help="Ignore local cache and fetch fresh data from APIs",
+    )
+    parser.add_argument(
+        "--offline",
+        action="store_true",
+        help="Run completely offline using SQLite database or mock fallback",
+    )
+    parser.add_argument(
+        "--no-incremental",
+        action="store_true",
+        help="Do not resume from last pagination cursor (restart pagination from page 1)",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default="reports",
+        help="Directory to save analysis report and generated figures",
+    )
+    parser.add_argument(
+        "--no-plots",
+        action="store_true",
+        help="Disable figure generation (fast text-only mode)",
+    )
+
+    return parser.parse_args()
+
+
+def main() -> int:
+    """Execute main CLI workflow."""
+    args = parse_arguments()
+
+    figures_dir = os.path.join(args.output_dir, "figures")
+    k_param = None if args.k == 0 else args.k
+
+    config = PipelineConfig(
+        num_samples=args.samples,
+        k=k_param,
+        min_k=args.min_k,
+        max_k=args.max_k,
+        preferred_source=args.source,
+        rate_limit_delay=args.rate_delay,
+        db_path=args.db_path,
+        dbscan_eps=args.dbscan_eps,
+        dbscan_min_samples=args.dbscan_min_samples,
+        cache_path="data/raw_anime_data.json",
+        output_dir=args.output_dir,
+        figures_dir=figures_dir,
+        force_fetch=args.force_fetch,
+        offline_mode=args.offline,
+        incremental=not args.no_incremental,
+        generate_plots=not args.no_plots,
+    )
+
+    try:
+        pipeline = InsightsPipeline(config)
+        results = pipeline.run()
+
+        print("\n" + "=" * 65)
+        print(" PIPELINE EXECUTION COMPLETED")
+        print("=" * 65)
+        print(f"Total anime analyzed: {results['num_samples']}")
+        print(f"Total in SQLite database: {results['db_total_count']}")
+        print(f"Cluster count: {results['k_optimal']}")
+        print("Empirical Archetypes Discovered:")
+        for cid, arch in results["archetype_labels"].items():
+            print(f"  • Cluster {cid}: {arch}")
+        print(f"DBSCAN: {results['dbscan_clusters']} dense clusters, {results['dbscan_noise']} noise points")
+        if results.get("figure_paths"):
+            print(f"Generated {len(results['figure_paths'])} visualization figures in: {figures_dir}")
+        print(f"Detailed analytical report saved to: {results['report_path']}")
+        print("=" * 65 + "\n")
+        return 0
+
+    except Exception as e:
+        logger.exception("Fatal error in pipeline execution: %s", e)
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
