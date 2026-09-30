@@ -8,6 +8,7 @@
 #     "scikit-learn",
 # ]
 # ///
+
 import marimo
 
 __generated_with = "0.25.0"
@@ -28,11 +29,9 @@ def _():
 def intro_narrative(mo):
     mo.md(r"""
     # Empirical Latent Space and Cluster Archetype Analysis in Animated Media
-    ### *A Pedagogical Investigation from High-Dimensional Metadata to Latent Space Projections*
+    ### *Codebase: https://github.com/fizzflip/ai-powered-data-insights*
 
     This study provides a structured data science investigation analyzing an empirical catalog of animation titles spanning Japanese television broadcasts, Chinese Donghua, and Korean Aeni. The workflow models multidimensional audience reception, format parameters, and categorical taxonomies through dimensionality reduction and unsupervised clustering.
-
-    Every section includes **interactive knobs** (sliders, dropdowns, and toggles) that immediately propagate state downstream through a reactive Directed Acyclic Graph (DAG) without requiring manual button clicks or page reloads.
 
     ---
     """)
@@ -63,7 +62,6 @@ def setup_and_imports():
 
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
-
     return (
         DBSCAN,
         KMeans,
@@ -648,7 +646,12 @@ def catalog_toggle_control(mo):
 
 
 @app.cell
-async def load_resilient_catalog(EMBEDDED_CATALOG, load_full_db, pd, repo_root):
+async def load_resilient_catalog(
+    EMBEDDED_CATALOG,
+    load_full_db,
+    pd,
+    repo_root,
+):
     import gzip as _gzip
     import json as _json
     import os as _os
@@ -920,7 +923,6 @@ async def load_resilient_catalog(EMBEDDED_CATALOG, load_full_db, pd, repo_root):
 
     if "origin_cohort" not in raw_catalog_df.columns:
         raw_catalog_df["origin_cohort"] = "jp"
-
     return catalog_status, raw_catalog_df, source_name
 
 
@@ -932,16 +934,16 @@ def _(raw_catalog_df):
 
 @app.cell
 def section_1_narrative(mo, raw_catalog_df, source_name):
-    mo.md(
-        f"""
-        ## 1. Data Ingestion & Cohort Exploration
+    mo.md(f"""
+    ---
 
-        We initiate the analytical pipeline by ingesting the catalog metadata. The active data tier is **`{source_name}`**, comprising **{len(raw_catalog_df):,}** animation entities.
-        Each observation is characterized by continuous reception metrics (community rating scores, log-scale popularity counts, and favorites counts), temporal coordinates (season release year), structural distribution parameters (episode volume, episode runtime duration), and discrete categorical genres.
+    ## 1. Data Ingestion & Cohort Exploration
 
-        The interactive controls below parameterize the active cohort filter, sample size $N$, and lower-bound score truncation threshold.
-        """
-    )
+    We initiate the analytical pipeline by ingesting the catalog metadata. The active data tier is **`{source_name}`**, comprising **{len(raw_catalog_df):,}** animation entities.
+    Each observation is characterized by continuous reception metrics (community rating scores, log-scale popularity counts, and favorites counts), temporal coordinates (season release year), structural distribution parameters (episode volume, episode runtime duration), and discrete categorical genres.
+
+    The interactive controls below parameterize the active cohort filter, sample size $N$, and lower-bound score truncation threshold.
+    """)
     return
 
 
@@ -1004,8 +1006,8 @@ def display_ingestion_controls(
 
     ingestion_controls_view = mo.vstack(
         [
-            mo.hstack([load_full_db], justify="start"),
             mo.hstack([cohort_picker, sample_slider, min_score_slider], justify="start", gap=1.5),
+            mo.hstack([load_full_db], justify="start"),
             status_card,
         ],
         gap=1.0,
@@ -1100,7 +1102,7 @@ def feature_engineering_controls(mo):
 def display_fe_controls(max_tag_features_slider):
     fe_controls_view = max_tag_features_slider
     fe_controls_view
-    return (fe_controls_view,)
+    return
 
 
 @app.cell
@@ -1171,12 +1173,7 @@ def clean_and_engineer_features(
 
 
 @app.cell
-def plot_feature_transformation_distributions(
-    alt,
-    df_cleaned,
-    fe_controls_view,
-    mo,
-):
+def plot_feature_transformation_distributions(alt, df_cleaned, mo):
     chart_raw = (
         alt.Chart(df_cleaned)
         .mark_bar(color="#e74c3c", opacity=0.75)
@@ -1427,7 +1424,7 @@ def run_clustering_and_pca(
 
     df_clustered["archetype"] = df_clustered["cluster_id"].map(_archetype_map)
     archetype_summary_df = pd.DataFrame(_profile_rows)
-    return archetype_summary_df, df_clustered, n_noise, var_exp
+    return archetype_summary_df, df_clustered, var_exp
 
 
 @app.cell
@@ -1447,7 +1444,7 @@ def section_5_narrative(mo, var_exp):
     mo.md(
         r"""
         ---
-        ## 5. Interactive Latent Space Map (Altair)
+        ## 5. Interactive Map 
 
         The figure below projects observations into the two-dimensional principal component subspace $\mathbb{R}^2$ computed via PCA (PC1 accounts for **""" + _pc1 + r"""**, PC2 accounts for **""" + _pc2 + r"""** of latent variance).
 
@@ -1540,7 +1537,7 @@ def render_brushed_selection_inspector(cluster_map_widget, df_clustered, mo):
         detail_table,
     ])
     inspector_view
-    return detail_table, inspector_view
+    return
 
 
 @app.cell
@@ -1583,30 +1580,6 @@ def render_cross_market_comparison(alt, df_clustered, mo):
 @app.cell
 def _(cross_market_view):
     cross_market_view
-    return
-
-
-@app.cell
-def section_7_narrative(mo):
-    mo.md(r"""
-    ---
-    ## 7. Synthesis & WebAssembly (WASM) Deployment
-
-    ### Summary of Empirical Findings:
-    1. **Principal Component Separation**: High-budget global commercial franchises separate distinctly along the primary principal component axis (PC1) from episodic television comedy and short-form OVA productions.
-    2. **Market Topology Divergence**: Chinese long-running digital web serials possess unique episode-to-duration ratios and distinct genre clustering behaviors that form dedicated sub-manifolds when analyzed without cohort suppression.
-    3. **Algorithmic Reproducibility**: Stratified subsampling combined with deterministic $K$-Means initialization guarantees stable archetype rankings across diverse sample volumes.
-
-    ---
-    ### Serverless Client-Side WebAssembly Deployment:
-    This reactive computational document can be compiled into a serverless, standalone HTML application that executes entirely in the client's browser through WebAssembly (Pyodide):
-
-    ```bash
-    uv run marimo export html-wasm notebooks/anime_notebook.py --output reports/anime_notebook.wasm.html --mode run
-    ```
-
-    Hosting the exported artifact requires zero backend compute infrastructure, executing directly within standard web hosting environments.
-    """)
     return
 
 
