@@ -54,6 +54,7 @@ reports/CLAUDE.md
 # Netlify local cache and build artifacts
 .netlify/
 
-# Temporary directories
+# Temporary directories and release archives
 outputs/
 scratch/
+*.zip

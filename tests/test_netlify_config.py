@@ -89,3 +89,37 @@ def test_netlify_preview_handler_mime_and_headers():
     """Verify NetlifyPreviewHandler extensions map and header injection."""
     assert NetlifyPreviewHandler.extensions_map[".wasm"] == "application/wasm"
     assert NetlifyPreviewHandler.extensions_map[".whl"] == "application/octet-stream"
+
+
+def test_build_netlify_zip_archive(tmp_path: Path):
+    """Verify Netlify Drop ZIP generator packages root files, headers, and excludes caches."""
+    import zipfile
+    from scripts.package_netlify_drop import build_netlify_zip
+
+    mock_reports = tmp_path / "mock_reports"
+    mock_reports.mkdir()
+    (mock_reports / "index.html").write_text("<html></html>", encoding="utf-8")
+    (mock_reports / "_headers").write_text("/*\n  COOP: same-origin", encoding="utf-8")
+    (mock_reports / "_redirects").write_text("/from /to 200", encoding="utf-8")
+
+    sub_data = mock_reports / "data"
+    sub_data.mkdir()
+    (sub_data / "catalog.json.gz").write_bytes(b"\x1f\x8b\x08test")
+
+    # Temp cache folder that must be excluded
+    marimo_cache = mock_reports / "__marimo__"
+    marimo_cache.mkdir()
+    (marimo_cache / "cache.json").write_text("{}", encoding="utf-8")
+
+    out_zip = tmp_path / "test-deploy.zip"
+    build_netlify_zip(source_dir=mock_reports, output_zip=out_zip)
+
+    assert out_zip.exists()
+    with zipfile.ZipFile(out_zip, "r") as zf:
+        names = zf.namelist()
+        assert "index.html" in names
+        assert "_headers" in names
+        assert "_redirects" in names
+        assert "data/catalog.json.gz" in names
+        assert not any("__marimo__" in n for n in names)
+
