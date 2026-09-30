@@ -168,6 +168,25 @@ def parse_arguments() -> argparse.Namespace:
         default=150,
         help="Figure rasterization resolution (dots per inch, default: 150)",
     )
+    parser.add_argument(
+        "--dashboard",
+        nargs="?",
+        const="run",
+        choices=["run", "edit"],
+        default=None,
+        help="Launch Marimo interactive visual dashboard: 'run' for read-only app view (default), 'edit' for interactive notebook editor",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=2718,
+        help="Port number for Marimo server (default: 2718)",
+    )
+    parser.add_argument(
+        "--headless",
+        action="store_true",
+        help="Run Marimo server without automatically opening browser",
+    )
 
     return parser.parse_args()
 
@@ -175,6 +194,20 @@ def parse_arguments() -> argparse.Namespace:
 def main() -> int:
     """Execute main CLI workflow."""
     args = parse_arguments()
+
+    if args.dashboard:
+        import subprocess
+        repo_root = os.path.dirname(os.path.abspath(__file__))
+        notebook_path = os.path.join(repo_root, "notebooks", "anime_dashboard.py")
+        cmd = [sys.executable, "-m", "marimo", args.dashboard, notebook_path, "--port", str(args.port)]
+        if args.headless:
+            cmd.append("--headless")
+        logger.info("Launching Marimo dashboard (%s mode) on port %d: %s", args.dashboard, args.port, " ".join(cmd))
+        try:
+            return subprocess.call(cmd)
+        except KeyboardInterrupt:
+            logger.info("Marimo dashboard stopped by user.")
+            return 0
 
     if args.run_scaling_steps:
         from scripts.demonstrate_scaling import run_incremental_scaling_demonstration
