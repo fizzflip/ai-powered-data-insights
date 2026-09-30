@@ -132,6 +132,16 @@ def parse_arguments() -> argparse.Namespace:
         action="store_true",
         help="Disable figure generation (fast text-only mode)",
     )
+    parser.add_argument(
+        "--parallel-harvest",
+        action="store_true",
+        help="Run high-throughput parallel harvesting (AniList + Kitsu) to reach target sample volume",
+    )
+    parser.add_argument(
+        "--deduplicate",
+        action="store_true",
+        help="Run thorough cross-source and internal deduplication on database and export to JSON",
+    )
 
     return parser.parse_args()
 
@@ -151,6 +161,28 @@ def main() -> int:
             sample_steps=sample_steps,
             output_dir=args.output_dir,
         )
+
+    if args.deduplicate:
+        from src.database import AnimeCatalogDB
+        db = AnimeCatalogDB(args.db_path)
+        stats = db.thorough_deduplicate()
+        db.export_to_json("data/raw_anime_data.json")
+        logger.info("Deduplication completed: %s", stats)
+        return 0
+
+    if args.parallel_harvest:
+        from scripts.harvest_10k import ParallelAnimeHarvester, run_pipeline_reanalysis
+        from src.database import AnimeCatalogDB
+        db = AnimeCatalogDB(args.db_path)
+        harvester = ParallelAnimeHarvester(
+            db=db,
+            target_records=args.samples,
+            rate_delay=args.rate_delay,
+        )
+        final_count = harvester.run()
+        if not args.no_plots:
+            run_pipeline_reanalysis(adaptive_k=args.adaptive_k)
+        return 0
 
     figures_dir = os.path.join(args.output_dir, "figures")
     k_param = None if (args.k == 0 or args.adaptive_k) else args.k

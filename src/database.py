@@ -12,7 +12,9 @@ import datetime
 import json
 import logging
 import os
+import re
 import sqlite3
+import unicodedata
 from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger("database")
@@ -36,9 +38,11 @@ class AnimeCatalogDB:
         self._init_db()
 
     def _get_connection(self) -> sqlite3.Connection:
-        """Create a connection with row factory configured."""
-        conn = sqlite3.connect(self.db_path)
+        """Create a connection with row factory, WAL mode, and busy timeout configured."""
+        conn = sqlite3.connect(self.db_path, timeout=30.0)
         conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA busy_timeout=30000;")
         return conn
 
     def _init_db(self) -> None:
@@ -96,8 +100,125 @@ class AnimeCatalogDB:
     def _normalize_record_id(record: Dict[str, Any], source_api: str) -> str:
         """Construct canonical composite ID for deduplication."""
         src = str(record.get("source_api") or source_api).lower()
+        if src == "api":
+            src = "anilist"
         raw_id = record.get("id")
         return f"{src}:{raw_id}"
+
+    @staticmethod
+    def clean_title(title: Optional[str]) -> str:
+        """Normalize anime title for robust deduplication across sources."""
+        if not title:
+            return ""
+        t = unicodedata.normalize("NFKC", str(title)).lower()
+        t = re.sub(
+            r"[\(\[\{]\s*(?:tv|ova|ona|movie|special|the animation|part\s*\d+|\d{4})\s*[\)\]\}]",
+            " ",
+            t,
+            flags=re.IGNORECASE,
+        )
+        t = re.sub(
+            r"\b(the\s+animation|tv|ova|ona|movie|special)\b",
+            " ",
+            t,
+            flags=re.IGNORECASE,
+        )
+        t = re.sub(r"[^a-z0-9\s]", " ", t)
+        return " ".join(t.split())
+
+    def thorough_deduplicate(self) -> Dict[str, int]:
+        """
+        Perform thorough cross-source and internal deduplication:
+        1. Consolidate legacy 'api:' prefix IDs into 'anilist:' canonical IDs.
+        2. Detect and merge cross-source records (e.g. AniList vs Kitsu) matching on
+           canonical normalized title, release year, and episode count.
+        3. Prune redundant duplicate rows while preserving the richest metadata.
+        """
+        initial_count = self.count_records()
+        consolidated_ids = 0
+        cross_source_merged = 0
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+
+            # Step 1: Consolidate legacy 'api:' prefix IDs
+            cursor.execute(
+                "SELECT id, external_id FROM anime_records WHERE source_api = 'api' OR id LIKE 'api:%'"
+            )
+            api_rows = cursor.fetchall()
+            for row in api_rows:
+                old_id = row["id"]
+                ext_id = row["external_id"]
+                canon_id = f"anilist:{ext_id}"
+
+                cursor.execute("SELECT id FROM anime_records WHERE id = ?", (canon_id,))
+                exists = cursor.fetchone()
+                if exists:
+                    cursor.execute("DELETE FROM anime_records WHERE id = ?", (old_id,))
+                    consolidated_ids += 1
+                else:
+                    cursor.execute(
+                        "UPDATE anime_records SET id = ?, source_api = 'anilist' WHERE id = ?",
+                        (canon_id, old_id),
+                    )
+                    consolidated_ids += 1
+            conn.commit()
+
+            # Step 2: Cross-source title + year deduplication (e.g. AniList vs Kitsu)
+            cursor.execute(
+                "SELECT id, source_api, external_id, title_romaji, title_english, "
+                "season_year, episodes, average_score, popularity, raw_json FROM anime_records"
+            )
+            all_rows = cursor.fetchall()
+
+            primary_index: Dict[Tuple[str, int, int], str] = {}
+            primary_title_year: Dict[Tuple[str, int], str] = {}
+
+            for r in all_rows:
+                if r["source_api"] == "anilist":
+                    y = r["season_year"] or 0
+                    ep = r["episodes"] or 0
+                    for t_raw in (r["title_romaji"], r["title_english"]):
+                        t_clean = self.clean_title(t_raw)
+                        if len(t_clean) >= 4:
+                            primary_title_year[(t_clean, y)] = r["id"]
+                            if ep > 0:
+                                primary_index[(t_clean, y, ep)] = r["id"]
+
+            to_delete_ids = []
+            for r in all_rows:
+                if r["source_api"] != "anilist":
+                    y = r["season_year"] or 0
+                    ep = r["episodes"] or 0
+                    matched_primary_id = None
+                    for t_raw in (r["title_romaji"], r["title_english"]):
+                        t_clean = self.clean_title(t_raw)
+                        if len(t_clean) >= 4:
+                            if ep > 0 and (t_clean, y, ep) in primary_index:
+                                matched_primary_id = primary_index[(t_clean, y, ep)]
+                                break
+                            elif (t_clean, y) in primary_title_year:
+                                matched_primary_id = primary_title_year[(t_clean, y)]
+                                break
+                    if matched_primary_id and matched_primary_id != r["id"]:
+                        to_delete_ids.append(r["id"])
+
+            for del_id in to_delete_ids:
+                cursor.execute("DELETE FROM anime_records WHERE id = ?", (del_id,))
+                cross_source_merged += 1
+
+            conn.commit()
+
+        final_count = self.count_records()
+        stats = {
+            "initial_count": initial_count,
+            "legacy_ids_consolidated": consolidated_ids,
+            "cross_source_merged": cross_source_merged,
+            "total_pruned": initial_count - final_count,
+            "final_count": final_count,
+        }
+        logger.info("Thorough deduplication complete: %s", stats)
+        return stats
 
     def upsert_records(
         self,

@@ -542,7 +542,7 @@ MOCK_ANIME_DATA: List[Dict[str, Any]] = [
 # AniList GraphQL Query Definition
 # ---------------------------------------------------------------------------
 ANILIST_GRAPHQL_QUERY = """
-query ($page: Int, $perPage: Int) {
+query ($page: Int, $perPage: Int, $sort: [MediaSort] = [POPULARITY_DESC]) {
   Page(page: $page, perPage: $perPage) {
     pageInfo {
       total
@@ -551,7 +551,7 @@ query ($page: Int, $perPage: Int) {
       hasNextPage
       perPage
     }
-    media(type: ANIME, sort: POPULARITY_DESC) {
+    media(type: ANIME, sort: $sort) {
       id
       title {
         romaji
@@ -607,11 +607,19 @@ class AniListGraphQLClient:
             }
         )
 
-    def query_page(self, page: int, per_page: int) -> Optional[Dict[str, Any]]:
+    def query_page(
+        self,
+        page: int,
+        per_page: int,
+        sort: Optional[List[str]] = None,
+    ) -> Optional[Dict[str, Any]]:
         """Query a single page from AniList with backoff."""
+        variables: Dict[str, Any] = {"page": page, "perPage": per_page}
+        if sort:
+            variables["sort"] = sort
         payload = {
             "query": ANILIST_GRAPHQL_QUERY,
-            "variables": {"page": page, "perPage": per_page},
+            "variables": variables,
         }
 
         for attempt in range(1, self.max_retries + 1):
