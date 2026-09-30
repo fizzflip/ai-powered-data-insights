@@ -105,12 +105,16 @@ def test_wasm_html_notebook_export():
         assert 'data-marimo="true"' in content
 
 
-def test_notebook_symlink_identity():
-    """Verify root anime_notebook.py symlink resolves directly to notebooks/anime_notebook.py."""
+def test_notebook_real_file_integrity():
+    """Verify root anime_notebook.py is a real, non-empty file (not a symlink) with valid content."""
     repo_root = Path(__file__).resolve().parent.parent
-    notebook_path = (repo_root / "notebooks" / "anime_notebook.py").resolve()
-    symlink_path = (repo_root / "anime_notebook.py").resolve()
+    notebook_path = repo_root / "notebooks" / "anime_notebook.py"
+    root_path = repo_root / "anime_notebook.py"
 
-    assert symlink_path.exists()
-    assert notebook_path.exists()
-    assert symlink_path == notebook_path
+    assert root_path.exists(), f"anime_notebook.py missing at {root_path}"
+    assert not root_path.is_symlink(), "anime_notebook.py must be a real file, not a brittle symlink"
+    assert root_path.stat().st_size > 10000, f"anime_notebook.py is suspiciously small ({root_path.stat().st_size} bytes)"
+
+    if notebook_path.exists():
+        assert not notebook_path.is_symlink(), "notebooks/anime_notebook.py must not be a symlink"
+        assert root_path.read_text(encoding="utf-8") == notebook_path.read_text(encoding="utf-8")

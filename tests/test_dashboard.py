@@ -94,13 +94,15 @@ def test_static_html_dashboard_export():
         assert "<!DOCTYPE html>" in content or "<html" in content
 
 
-def test_symlink_identity():
-    """Verify root dashboard.py resolves to notebooks/anime_dashboard.py."""
+def test_dashboard_real_file_integrity():
+    """Verify root dashboard.py is a real, non-empty file (not a symlink) with valid content."""
     repo_root = Path(__file__).resolve().parent.parent
-    notebook_path = (repo_root / "notebooks" / "anime_dashboard.py").resolve()
-    shim_path = (repo_root / "dashboard.py").resolve()
+    notebook_path = repo_root / "notebooks" / "anime_dashboard.py"
+    shim_path = repo_root / "dashboard.py"
 
     assert notebook_path.exists()
     assert shim_path.exists()
-    assert notebook_path == shim_path or notebook_path.read_text() == shim_path.read_text()
+    assert not shim_path.is_symlink(), "dashboard.py must be a real file, not a brittle symlink"
+    assert shim_path.stat().st_size > 10000, f"dashboard.py is suspiciously small ({shim_path.stat().st_size} bytes)"
+    assert notebook_path.read_text(encoding="utf-8") == shim_path.read_text(encoding="utf-8")
 

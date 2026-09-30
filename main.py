@@ -206,7 +206,9 @@ def main() -> int:
     if args.notebook:
         import subprocess
         repo_root = os.path.dirname(os.path.abspath(__file__))
-        notebook_path = os.path.join(repo_root, "notebooks", "anime_notebook.py")
+        notebook_path = os.path.join(repo_root, "anime_notebook.py")
+        if not os.path.exists(notebook_path):
+            notebook_path = os.path.join(repo_root, "notebooks", "anime_notebook.py")
         cmd = [sys.executable, "-m", "marimo", args.notebook, notebook_path, "--port", str(args.port)]
         if args.headless:
             cmd.append("--headless")
@@ -220,7 +222,9 @@ def main() -> int:
     if args.dashboard:
         import subprocess
         repo_root = os.path.dirname(os.path.abspath(__file__))
-        notebook_path = os.path.join(repo_root, "notebooks", "anime_dashboard.py")
+        notebook_path = os.path.join(repo_root, "dashboard.py")
+        if not os.path.exists(notebook_path):
+            notebook_path = os.path.join(repo_root, "notebooks", "anime_dashboard.py")
         cmd = [sys.executable, "-m", "marimo", args.dashboard, notebook_path, "--port", str(args.port)]
         if args.headless:
             cmd.append("--headless")
