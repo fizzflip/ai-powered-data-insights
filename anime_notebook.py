@@ -1,32 +1,45 @@
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "altair>=5.0.0",
+#     "marimo>=0.25.0",
+#     "numpy",
+#     "pandas",
+#     "scikit-learn",
+# ]
+# ///
 import marimo
 
 __generated_with = "0.25.0"
-app = marimo.App(width="medium", app_title="Reactive Anime Data Science Walkthrough")
+app = marimo.App(
+    width="medium",
+    app_title="Empirical Anime Latent Space & Archetype Analysis",
+)
 
 
 @app.cell
-def intro_narrative():
+def _():
     import marimo as mo
 
-    intro_md = mo.md(
-        """
-        # 🎌 Step-by-Step Anime Latent Space & Archetype Analysis
-        ### *An Interactive, Reactive Pedagogical Walkthrough from Raw Metadata to Discovered Archetypes*
-
-        Welcome to this interactive data science notebook. Rather than a static dashboard, this document provides a
-        **step-by-step linear computational narrative** exploring a global anime catalog of over **40,000 titles** spanning
-        Japanese domestic productions, Chinese Donghua, and Korean Aeni.
-
-        Every section includes **interactive knobs** (sliders, dropdowns, and toggles) that immediately propagate state
-        downstream through a reactive Directed Acyclic Graph (DAG) without needing manual button clicks or page reloads.
-
-        ---
-        """
-    )
-    return intro_md, mo
+    return (mo,)
 
 
 @app.cell
+def intro_narrative(mo):
+    mo.md(r"""
+    # Empirical Latent Space and Cluster Archetype Analysis in Animated Media
+    ### *A Pedagogical Investigation from High-Dimensional Metadata to Latent Space Projections*
+
+    This study provides a structured data science investigation analyzing an empirical catalog of animation titles spanning Japanese television broadcasts, Chinese Donghua, and Korean Aeni. The workflow models multidimensional audience reception, format parameters, and categorical taxonomies through dimensionality reduction and unsupervised clustering.
+
+    Every section includes **interactive knobs** (sliders, dropdowns, and toggles) that immediately propagate state downstream through a reactive Directed Acyclic Graph (DAG) without requiring manual button clicks or page reloads.
+
+    ---
+    """)
+    return
+
+
+@app.cell(hide_code=True)
 def setup_and_imports():
     import os
     import sys
@@ -41,9 +54,13 @@ def setup_and_imports():
     from sklearn.metrics import silhouette_score
     from sklearn.preprocessing import StandardScaler
 
-    # Ensure repository root is in sys.path
-    _current = Path(__file__).resolve()
-    repo_root = _current.parent.parent if _current.parent.name == "notebooks" else _current.parent
+    # Resolve repository root safely without failing in Pyodide/browser
+    try:
+        _current = Path(__file__).resolve()
+        repo_root = _current.parent.parent if _current.parent.name == "notebooks" else _current.parent
+    except Exception:
+        repo_root = Path(".")
+
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
 
@@ -55,76 +72,651 @@ def setup_and_imports():
         TfidfVectorizer,
         alt,
         np,
-        os,
         pd,
         repo_root,
         silhouette_score,
     )
 
 
-@app.cell
+@app.cell(hide_code=True)
 def embedded_catalog_data():
     # Curated standalone fallback dataset to guarantee zero-backend execution in client-side Pyodide/WASM
     EMBEDDED_CATALOG = [
-        {"id": 1, "title": "Cowboy Bebop", "seasonYear": 1998, "averageScore": 89, "popularity": 340000, "favourites": 45000, "episodes": 26, "duration": 24, "genres": ["Action", "Sci-Fi"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 20, "title": "Neon Genesis Evangelion", "seasonYear": 1995, "averageScore": 83, "popularity": 320000, "favourites": 95000, "episodes": 26, "duration": 24, "genres": ["Action", "Drama", "Mecha", "Psychological"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 164, "title": "Princess Mononoke", "seasonYear": 1997, "averageScore": 88, "popularity": 260000, "favourites": 22000, "episodes": 1, "duration": 133, "genres": ["Action", "Adventure", "Fantasy"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 199, "title": "Spirited Away", "seasonYear": 2001, "averageScore": 88, "popularity": 380000, "favourites": 34000, "episodes": 1, "duration": 125, "genres": ["Adventure", "Fantasy", "Supernatural"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 5114, "title": "Fullmetal Alchemist: Brotherhood", "seasonYear": 2009, "averageScore": 91, "popularity": 490000, "favourites": 88000, "episodes": 64, "duration": 24, "genres": ["Action", "Adventure", "Drama", "Fantasy"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 9253, "title": "Steins;Gate", "seasonYear": 2011, "averageScore": 90, "popularity": 410000, "favourites": 72000, "episodes": 24, "duration": 24, "genres": ["Drama", "Psychological", "Sci-Fi", "Thriller"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 1535, "title": "Death Note", "seasonYear": 2006, "averageScore": 86, "popularity": 540000, "favourites": 68000, "episodes": 37, "duration": 23, "genres": ["Mystery", "Psychological", "Supernatural", "Thriller"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 16498, "title": "Attack on Titan", "seasonYear": 2013, "averageScore": 85, "popularity": 620000, "favourites": 67000, "episodes": 25, "duration": 24, "genres": ["Action", "Drama", "Fantasy", "Mystery"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 101922, "title": "Kimetsu no Yaiba: Demon Slayer", "seasonYear": 2019, "averageScore": 84, "popularity": 510000, "favourites": 42000, "episodes": 26, "duration": 24, "genres": ["Action", "Fantasy", "Supernatural"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 113415, "title": "Jujutsu Kaisen", "seasonYear": 2020, "averageScore": 86, "popularity": 490000, "favourites": 38000, "episodes": 24, "duration": 24, "genres": ["Action", "Fantasy", "Supernatural"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 154587, "title": "Sousou no Frieren", "seasonYear": 2023, "averageScore": 93, "popularity": 320000, "favourites": 45000, "episodes": 28, "duration": 24, "genres": ["Adventure", "Drama", "Fantasy"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 127230, "title": "Chainsaw Man", "seasonYear": 2022, "averageScore": 84, "popularity": 460000, "favourites": 49000, "episodes": 12, "duration": 24, "genres": ["Action", "Drama", "Horror", "Supernatural"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 7785, "title": "The Tatami Galaxy", "seasonYear": 2010, "averageScore": 85, "popularity": 132000, "favourites": 16400, "episodes": 11, "duration": 23, "genres": ["Comedy", "Mystery", "Psychological", "Romance"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 5081, "title": "Bakemonogatari", "seasonYear": 2009, "averageScore": 83, "popularity": 280000, "favourites": 41000, "episodes": 15, "duration": 25, "genres": ["Comedy", "Mystery", "Psychological", "Romance", "Supernatural"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 20665, "title": "Ping Pong the Animation", "seasonYear": 2014, "averageScore": 86, "popularity": 140000, "favourites": 15000, "episodes": 11, "duration": 23, "genres": ["Drama", "Psychological", "Sports"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 19, "title": "Monster", "seasonYear": 2004, "averageScore": 88, "popularity": 240000, "favourites": 36000, "episodes": 74, "duration": 24, "genres": ["Drama", "Mystery", "Psychological", "Thriller"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 339, "title": "Serial Experiments Lain", "seasonYear": 1998, "averageScore": 80, "popularity": 210000, "favourites": 31000, "episodes": 13, "duration": 24, "genres": ["Drama", "Mystery", "Psychological", "Sci-Fi"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 30, "title": "Neon Genesis Evangelion: The End of Evangelion", "seasonYear": 1997, "averageScore": 86, "popularity": 240000, "favourites": 37000, "episodes": 1, "duration": 87, "genres": ["Action", "Drama", "Mecha", "Psychological", "Sci-Fi"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 43, "title": "Ghost in the Shell", "seasonYear": 1995, "averageScore": 82, "popularity": 210000, "favourites": 16000, "episodes": 1, "duration": 83, "genres": ["Action", "Mecha", "Psychological", "Sci-Fi"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 101347, "title": "Mo Dao Zu Shi (Grandmaster of Demonic Cultivation)", "seasonYear": 2018, "averageScore": 84, "popularity": 95000, "favourites": 19000, "episodes": 15, "duration": 24, "genres": ["Action", "Adventure", "Drama", "Fantasy", "Mystery", "Supernatural"], "origin_cohort": "non-jp", "sub_origin": "CN"},
-        {"id": 108465, "title": "Tian Guan Ci Fu (Heaven Official's Blessing)", "seasonYear": 2020, "averageScore": 83, "popularity": 88000, "favourites": 16500, "episodes": 11, "duration": 24, "genres": ["Action", "Adventure", "Drama", "Fantasy", "Supernatural"], "origin_cohort": "non-jp", "sub_origin": "CN"},
-        {"id": 11061, "title": "Hunter x Hunter (2011)", "seasonYear": 2011, "averageScore": 90, "popularity": 480000, "favourites": 82000, "episodes": 148, "duration": 23, "genres": ["Action", "Adventure", "Fantasy"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 101921, "title": "Soul Land (Douluo Dalu)", "seasonYear": 2018, "averageScore": 77, "popularity": 32000, "favourites": 4200, "episodes": 250, "duration": 20, "genres": ["Action", "Adventure", "Fantasy", "Romance"], "origin_cohort": "non-jp", "sub_origin": "CN"},
-        {"id": 111324, "title": "A Will Eternal (Yi Nian Yong Heng)", "seasonYear": 2020, "averageScore": 78, "popularity": 21000, "favourites": 2600, "episodes": 106, "duration": 20, "genres": ["Action", "Comedy", "Fantasy"], "origin_cohort": "non-jp", "sub_origin": "CN"},
-        {"id": 107419, "title": "Battle Through the Heavens (Doupo Cangqiong)", "seasonYear": 2017, "averageScore": 76, "popularity": 28000, "favourites": 2900, "episodes": 12, "duration": 22, "genres": ["Action", "Adventure", "Fantasy"], "origin_cohort": "non-jp", "sub_origin": "CN"},
-        {"id": 113417, "title": "Tower of God (Kami no Tou)", "seasonYear": 2020, "averageScore": 77, "popularity": 290000, "favourites": 15000, "episodes": 13, "duration": 23, "genres": ["Action", "Adventure", "Drama", "Fantasy", "Mystery"], "origin_cohort": "non-jp", "sub_origin": "KR"},
-        {"id": 141821, "title": "The Daily Life of the Immortal King", "seasonYear": 2020, "averageScore": 73, "popularity": 140000, "favourites": 7800, "episodes": 15, "duration": 18, "genres": ["Action", "Adventure", "Comedy", "Fantasy", "Slice of Life"], "origin_cohort": "non-jp", "sub_origin": "CN"},
-        {"id": 140960, "title": "SPY x FAMILY", "seasonYear": 2022, "averageScore": 83, "popularity": 420000, "favourites": 31500, "episodes": 12, "duration": 24, "genres": ["Action", "Comedy", "Slice of Life", "Supernatural"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 99423, "title": "Scissor Seven (Cike Wu Liuqi)", "seasonYear": 2018, "averageScore": 81, "popularity": 85000, "favourites": 9200, "episodes": 10, "duration": 14, "genres": ["Action", "Comedy", "Drama", "Mystery", "Supernatural"], "origin_cohort": "non-jp", "sub_origin": "CN"},
-        {"id": 132405, "title": "Bocchi the Rock!", "seasonYear": 2022, "averageScore": 88, "popularity": 220000, "favourites": 38000, "episodes": 12, "duration": 24, "genres": ["Comedy", "Music", "Slice of Life"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 14513, "title": "Kimi no Na wa. (Your Name.)", "seasonYear": 2016, "averageScore": 89, "popularity": 450000, "favourites": 59000, "episodes": 1, "duration": 107, "genres": ["Drama", "Romance", "Supernatural"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 20755, "title": "Koe no Katachi (A Silent Voice)", "seasonYear": 2016, "averageScore": 89, "popularity": 430000, "favourites": 53000, "episodes": 1, "duration": 130, "genres": ["Drama", "Slice of Life"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 20605, "title": "Tokyo Ghoul", "seasonYear": 2014, "averageScore": 75, "popularity": 520000, "favourites": 48000, "episodes": 12, "duration": 24, "genres": ["Action", "Drama", "Horror", "Mystery", "Psychological", "Supernatural"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 21856, "title": "Boku no Hero Academia (My Hero Academia)", "seasonYear": 2016, "averageScore": 79, "popularity": 540000, "favourites": 35000, "episodes": 13, "duration": 24, "genres": ["Action", "Adventure", "Comedy", "Sci-Fi"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 10087, "title": "Fate/Zero", "seasonYear": 2011, "averageScore": 83, "popularity": 290000, "favourites": 26000, "episodes": 13, "duration": 28, "genres": ["Action", "Drama", "Fantasy", "Supernatural"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 21519, "title": "Kimi no Suizou wo Tabetai (I Want to Eat Your Pancreas)", "seasonYear": 2018, "averageScore": 85, "popularity": 240000, "favourites": 24000, "episodes": 1, "duration": 108, "genres": ["Drama", "Romance", "Slice of Life"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 13601, "title": "Psycho-Pass", "seasonYear": 2012, "averageScore": 83, "popularity": 320000, "favourites": 29000, "episodes": 22, "duration": 23, "genres": ["Action", "Psychological", "Sci-Fi", "Thriller"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 1575, "title": "Code Geass: Hangyaku no Lelouch", "seasonYear": 2006, "averageScore": 87, "popularity": 420000, "favourites": 63000, "episodes": 25, "duration": 24, "genres": ["Action", "Drama", "Mecha", "Sci-Fi", "Thriller"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 21087, "title": "One Punch Man", "seasonYear": 2015, "averageScore": 85, "popularity": 590000, "favourites": 52000, "episodes": 12, "duration": 24, "genres": ["Action", "Comedy", "Sci-Fi", "Supernatural"], "origin_cohort": "jp", "sub_origin": "JP"},
-        {"id": 113418, "title": "The God of High School", "seasonYear": 2020, "averageScore": 68, "popularity": 190000, "favourites": 5400, "episodes": 13, "duration": 23, "genres": ["Action", "Comedy", "Supernatural"], "origin_cohort": "non-jp", "sub_origin": "KR"},
+        {
+            "id": 1,
+            "title": "Cowboy Bebop",
+            "seasonYear": 1998,
+            "averageScore": 89,
+            "popularity": 340000,
+            "favourites": 45000,
+            "episodes": 26,
+            "duration": 24,
+            "genres": ["Action", "Sci-Fi"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 20,
+            "title": "Neon Genesis Evangelion",
+            "seasonYear": 1995,
+            "averageScore": 83,
+            "popularity": 320000,
+            "favourites": 95000,
+            "episodes": 26,
+            "duration": 24,
+            "genres": ["Action", "Drama", "Mecha", "Psychological"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 164,
+            "title": "Princess Mononoke",
+            "seasonYear": 1997,
+            "averageScore": 88,
+            "popularity": 260000,
+            "favourites": 22000,
+            "episodes": 1,
+            "duration": 133,
+            "genres": ["Action", "Adventure", "Fantasy"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 199,
+            "title": "Spirited Away",
+            "seasonYear": 2001,
+            "averageScore": 88,
+            "popularity": 380000,
+            "favourites": 34000,
+            "episodes": 1,
+            "duration": 125,
+            "genres": ["Adventure", "Fantasy", "Supernatural"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 5114,
+            "title": "Fullmetal Alchemist: Brotherhood",
+            "seasonYear": 2009,
+            "averageScore": 91,
+            "popularity": 490000,
+            "favourites": 88000,
+            "episodes": 64,
+            "duration": 24,
+            "genres": ["Action", "Adventure", "Drama", "Fantasy"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 9253,
+            "title": "Steins;Gate",
+            "seasonYear": 2011,
+            "averageScore": 90,
+            "popularity": 410000,
+            "favourites": 72000,
+            "episodes": 24,
+            "duration": 24,
+            "genres": ["Drama", "Psychological", "Sci-Fi", "Thriller"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 1535,
+            "title": "Death Note",
+            "seasonYear": 2006,
+            "averageScore": 86,
+            "popularity": 540000,
+            "favourites": 68000,
+            "episodes": 37,
+            "duration": 23,
+            "genres": ["Mystery", "Psychological", "Supernatural", "Thriller"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 16498,
+            "title": "Attack on Titan",
+            "seasonYear": 2013,
+            "averageScore": 85,
+            "popularity": 620000,
+            "favourites": 67000,
+            "episodes": 25,
+            "duration": 24,
+            "genres": ["Action", "Drama", "Fantasy", "Mystery"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 101922,
+            "title": "Kimetsu no Yaiba: Demon Slayer",
+            "seasonYear": 2019,
+            "averageScore": 84,
+            "popularity": 510000,
+            "favourites": 42000,
+            "episodes": 26,
+            "duration": 24,
+            "genres": ["Action", "Fantasy", "Supernatural"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 113415,
+            "title": "Jujutsu Kaisen",
+            "seasonYear": 2020,
+            "averageScore": 86,
+            "popularity": 490000,
+            "favourites": 38000,
+            "episodes": 24,
+            "duration": 24,
+            "genres": ["Action", "Fantasy", "Supernatural"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 154587,
+            "title": "Sousou no Frieren",
+            "seasonYear": 2023,
+            "averageScore": 93,
+            "popularity": 320000,
+            "favourites": 45000,
+            "episodes": 28,
+            "duration": 24,
+            "genres": ["Adventure", "Drama", "Fantasy"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 127230,
+            "title": "Chainsaw Man",
+            "seasonYear": 2022,
+            "averageScore": 84,
+            "popularity": 460000,
+            "favourites": 49000,
+            "episodes": 12,
+            "duration": 24,
+            "genres": ["Action", "Drama", "Horror", "Supernatural"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 7785,
+            "title": "The Tatami Galaxy",
+            "seasonYear": 2010,
+            "averageScore": 85,
+            "popularity": 132000,
+            "favourites": 16400,
+            "episodes": 11,
+            "duration": 23,
+            "genres": ["Comedy", "Mystery", "Psychological", "Romance"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 5081,
+            "title": "Bakemonogatari",
+            "seasonYear": 2009,
+            "averageScore": 83,
+            "popularity": 280000,
+            "favourites": 41000,
+            "episodes": 15,
+            "duration": 25,
+            "genres": [
+                "Comedy",
+                "Mystery",
+                "Psychological",
+                "Romance",
+                "Supernatural",
+            ],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 20665,
+            "title": "Ping Pong the Animation",
+            "seasonYear": 2014,
+            "averageScore": 86,
+            "popularity": 140000,
+            "favourites": 15000,
+            "episodes": 11,
+            "duration": 23,
+            "genres": ["Drama", "Psychological", "Sports"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 19,
+            "title": "Monster",
+            "seasonYear": 2004,
+            "averageScore": 88,
+            "popularity": 240000,
+            "favourites": 36000,
+            "episodes": 74,
+            "duration": 24,
+            "genres": ["Drama", "Mystery", "Psychological", "Thriller"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 339,
+            "title": "Serial Experiments Lain",
+            "seasonYear": 1998,
+            "averageScore": 80,
+            "popularity": 210000,
+            "favourites": 31000,
+            "episodes": 13,
+            "duration": 24,
+            "genres": ["Drama", "Mystery", "Psychological", "Sci-Fi"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 30,
+            "title": "Neon Genesis Evangelion: The End of Evangelion",
+            "seasonYear": 1997,
+            "averageScore": 86,
+            "popularity": 240000,
+            "favourites": 37000,
+            "episodes": 1,
+            "duration": 87,
+            "genres": ["Action", "Drama", "Mecha", "Psychological", "Sci-Fi"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 43,
+            "title": "Ghost in the Shell",
+            "seasonYear": 1995,
+            "averageScore": 82,
+            "popularity": 210000,
+            "favourites": 16000,
+            "episodes": 1,
+            "duration": 83,
+            "genres": ["Action", "Mecha", "Psychological", "Sci-Fi"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 101347,
+            "title": "Mo Dao Zu Shi (Grandmaster of Demonic Cultivation)",
+            "seasonYear": 2018,
+            "averageScore": 84,
+            "popularity": 95000,
+            "favourites": 19000,
+            "episodes": 15,
+            "duration": 24,
+            "genres": [
+                "Action",
+                "Adventure",
+                "Drama",
+                "Fantasy",
+                "Mystery",
+                "Supernatural",
+            ],
+            "origin_cohort": "non-jp",
+            "sub_origin": "CN",
+        },
+        {
+            "id": 108465,
+            "title": "Tian Guan Ci Fu (Heaven Official's Blessing)",
+            "seasonYear": 2020,
+            "averageScore": 83,
+            "popularity": 88000,
+            "favourites": 16500,
+            "episodes": 11,
+            "duration": 24,
+            "genres": [
+                "Action",
+                "Adventure",
+                "Drama",
+                "Fantasy",
+                "Supernatural",
+            ],
+            "origin_cohort": "non-jp",
+            "sub_origin": "CN",
+        },
+        {
+            "id": 11061,
+            "title": "Hunter x Hunter (2011)",
+            "seasonYear": 2011,
+            "averageScore": 90,
+            "popularity": 480000,
+            "favourites": 82000,
+            "episodes": 148,
+            "duration": 23,
+            "genres": ["Action", "Adventure", "Fantasy"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 101921,
+            "title": "Soul Land (Douluo Dalu)",
+            "seasonYear": 2018,
+            "averageScore": 77,
+            "popularity": 32000,
+            "favourites": 4200,
+            "episodes": 250,
+            "duration": 20,
+            "genres": ["Action", "Adventure", "Fantasy", "Romance"],
+            "origin_cohort": "non-jp",
+            "sub_origin": "CN",
+        },
+        {
+            "id": 111324,
+            "title": "A Will Eternal (Yi Nian Yong Heng)",
+            "seasonYear": 2020,
+            "averageScore": 78,
+            "popularity": 21000,
+            "favourites": 2600,
+            "episodes": 106,
+            "duration": 20,
+            "genres": ["Action", "Comedy", "Fantasy"],
+            "origin_cohort": "non-jp",
+            "sub_origin": "CN",
+        },
+        {
+            "id": 107419,
+            "title": "Battle Through the Heavens (Doupo Cangqiong)",
+            "seasonYear": 2017,
+            "averageScore": 76,
+            "popularity": 28000,
+            "favourites": 2900,
+            "episodes": 12,
+            "duration": 22,
+            "genres": ["Action", "Adventure", "Fantasy"],
+            "origin_cohort": "non-jp",
+            "sub_origin": "CN",
+        },
+        {
+            "id": 113417,
+            "title": "Tower of God (Kami no Tou)",
+            "seasonYear": 2020,
+            "averageScore": 77,
+            "popularity": 290000,
+            "favourites": 15000,
+            "episodes": 13,
+            "duration": 23,
+            "genres": ["Action", "Adventure", "Drama", "Fantasy", "Mystery"],
+            "origin_cohort": "non-jp",
+            "sub_origin": "KR",
+        },
+        {
+            "id": 141821,
+            "title": "The Daily Life of the Immortal King",
+            "seasonYear": 2020,
+            "averageScore": 73,
+            "popularity": 140000,
+            "favourites": 7800,
+            "episodes": 15,
+            "duration": 18,
+            "genres": [
+                "Action",
+                "Adventure",
+                "Comedy",
+                "Fantasy",
+                "Slice of Life",
+            ],
+            "origin_cohort": "non-jp",
+            "sub_origin": "CN",
+        },
+        {
+            "id": 140960,
+            "title": "SPY x FAMILY",
+            "seasonYear": 2022,
+            "averageScore": 83,
+            "popularity": 420000,
+            "favourites": 31500,
+            "episodes": 12,
+            "duration": 24,
+            "genres": ["Action", "Comedy", "Slice of Life", "Supernatural"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 99423,
+            "title": "Scissor Seven (Cike Wu Liuqi)",
+            "seasonYear": 2018,
+            "averageScore": 81,
+            "popularity": 85000,
+            "favourites": 9200,
+            "episodes": 10,
+            "duration": 14,
+            "genres": ["Action", "Comedy", "Drama", "Mystery", "Supernatural"],
+            "origin_cohort": "non-jp",
+            "sub_origin": "CN",
+        },
+        {
+            "id": 132405,
+            "title": "Bocchi the Rock!",
+            "seasonYear": 2022,
+            "averageScore": 88,
+            "popularity": 220000,
+            "favourites": 38000,
+            "episodes": 12,
+            "duration": 24,
+            "genres": ["Comedy", "Music", "Slice of Life"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 14513,
+            "title": "Kimi no Na wa. (Your Name.)",
+            "seasonYear": 2016,
+            "averageScore": 89,
+            "popularity": 450000,
+            "favourites": 59000,
+            "episodes": 1,
+            "duration": 107,
+            "genres": ["Drama", "Romance", "Supernatural"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 20755,
+            "title": "Koe no Katachi (A Silent Voice)",
+            "seasonYear": 2016,
+            "averageScore": 89,
+            "popularity": 430000,
+            "favourites": 53000,
+            "episodes": 1,
+            "duration": 130,
+            "genres": ["Drama", "Slice of Life"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 20605,
+            "title": "Tokyo Ghoul",
+            "seasonYear": 2014,
+            "averageScore": 75,
+            "popularity": 520000,
+            "favourites": 48000,
+            "episodes": 12,
+            "duration": 24,
+            "genres": [
+                "Action",
+                "Drama",
+                "Horror",
+                "Mystery",
+                "Psychological",
+                "Supernatural",
+            ],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 21856,
+            "title": "Boku no Hero Academia (My Hero Academia)",
+            "seasonYear": 2016,
+            "averageScore": 79,
+            "popularity": 540000,
+            "favourites": 35000,
+            "episodes": 13,
+            "duration": 24,
+            "genres": ["Action", "Adventure", "Comedy", "Sci-Fi"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 10087,
+            "title": "Fate/Zero",
+            "seasonYear": 2011,
+            "averageScore": 83,
+            "popularity": 290000,
+            "favourites": 26000,
+            "episodes": 13,
+            "duration": 28,
+            "genres": ["Action", "Drama", "Fantasy", "Supernatural"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 21519,
+            "title": "Kimi no Suizou wo Tabetai (I Want to Eat Your Pancreas)",
+            "seasonYear": 2018,
+            "averageScore": 85,
+            "popularity": 240000,
+            "favourites": 24000,
+            "episodes": 1,
+            "duration": 108,
+            "genres": ["Drama", "Romance", "Slice of Life"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 13601,
+            "title": "Psycho-Pass",
+            "seasonYear": 2012,
+            "averageScore": 83,
+            "popularity": 320000,
+            "favourites": 29000,
+            "episodes": 22,
+            "duration": 23,
+            "genres": ["Action", "Psychological", "Sci-Fi", "Thriller"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 1575,
+            "title": "Code Geass: Hangyaku no Lelouch",
+            "seasonYear": 2006,
+            "averageScore": 87,
+            "popularity": 420000,
+            "favourites": 63000,
+            "episodes": 25,
+            "duration": 24,
+            "genres": ["Action", "Drama", "Mecha", "Sci-Fi", "Thriller"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 21087,
+            "title": "One Punch Man",
+            "seasonYear": 2015,
+            "averageScore": 85,
+            "popularity": 590000,
+            "favourites": 52000,
+            "episodes": 12,
+            "duration": 24,
+            "genres": ["Action", "Comedy", "Sci-Fi", "Supernatural"],
+            "origin_cohort": "jp",
+            "sub_origin": "JP",
+        },
+        {
+            "id": 113418,
+            "title": "The God of High School",
+            "seasonYear": 2020,
+            "averageScore": 68,
+            "popularity": 190000,
+            "favourites": 5400,
+            "episodes": 13,
+            "duration": 23,
+            "genres": ["Action", "Comedy", "Supernatural"],
+            "origin_cohort": "non-jp",
+            "sub_origin": "KR",
+        },
     ]
     return (EMBEDDED_CATALOG,)
 
-
 @app.cell
 def load_resilient_catalog(EMBEDDED_CATALOG, pd, repo_root):
-    # Tier 1: Try SQLite database if available
+    import json
+    import sqlite3
+
     db_path = repo_root / "data" / "anime_catalog.db"
-    source_name = "Embedded WASM Dataset"
+    source_name = "Embedded Standalone Benchmark Dataset"
     records = []
 
+    # Tier 1: Try SQLite database directly with standard library sqlite3
     if db_path.exists():
         try:
-            from src.database import AnimeCatalogDB
+            conn = sqlite3.connect(str(db_path))
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT external_id, id, title_romaji, title_english,
+                       season_year, season, episodes, duration,
+                       genres_json, tags_json, average_score, popularity,
+                       favourites, country_code, is_jp, raw_json
+                FROM anime_records
+                ORDER BY popularity DESC
+                LIMIT 5000
+                """
+            )
+            rows = cursor.fetchall()
+            if rows:
+                for _row in rows:
+                    raw_dict = {}
+                    if _row["raw_json"]:
+                        try:
+                            raw_dict = json.loads(_row["raw_json"])
+                        except Exception:
+                            raw_dict = {}
 
-            db = AnimeCatalogDB(db_path=str(db_path))
-            records = db.get_all_records(project_structured=True)
-            if records and len(records) > 0:
+                    # Extract genres
+                    g_val = _row["genres_json"]
+                    if g_val and g_val.startswith("["):
+                        try:
+                            genres = json.loads(g_val)
+                        except Exception:
+                            genres = []
+                    elif "genres" in raw_dict and isinstance(raw_dict["genres"], list):
+                        genres = raw_dict["genres"]
+                    else:
+                        genres = []
+
+                    # Extract tags
+                    t_val = _row["tags_json"]
+                    if t_val and t_val.startswith("["):
+                        try:
+                            tags = json.loads(t_val)
+                        except Exception:
+                            tags = []
+                    elif "tags" in raw_dict and isinstance(raw_dict["tags"], list):
+                        tags = raw_dict["tags"]
+                    else:
+                        tags = []
+
+                    is_jp_val = int(_row["is_jp"]) if _row["is_jp"] is not None else 1
+                    c_code = str(_row["country_code"]) if _row["country_code"] else ("JP" if is_jp_val == 1 else "OTHER")
+                    title = _row["title_english"] or _row["title_romaji"] or raw_dict.get("title") or "Unknown"
+
+                    records.append({
+                        "id": _row["external_id"] if _row["external_id"] and _row["external_id"] > 0 else _row["id"],
+                        "title": title,
+                        "seasonYear": _row["season_year"] or raw_dict.get("seasonYear"),
+                        "averageScore": _row["average_score"] or raw_dict.get("averageScore"),
+                        "popularity": _row["popularity"] or raw_dict.get("popularity"),
+                        "favourites": _row["favourites"] or raw_dict.get("favourites"),
+                        "episodes": _row["episodes"] or raw_dict.get("episodes"),
+                        "duration": _row["duration"] or raw_dict.get("duration"),
+                        "genres": genres,
+                        "tags": tags,
+                        "origin_cohort": "jp" if is_jp_val == 1 else "non-jp",
+                        "sub_origin": c_code,
+                    })
                 source_name = f"SQLite Persistent Catalog ({len(records):,} records)"
+            conn.close()
         except Exception:
             records = []
 
@@ -133,8 +725,6 @@ def load_resilient_catalog(EMBEDDED_CATALOG, pd, repo_root):
         json_path = repo_root / "data" / "raw_anime_data.json"
         if json_path.exists():
             try:
-                import json
-
                 with open(json_path, "r", encoding="utf-8") as f:
                     records = json.load(f)
                 if records and len(records) > 0:
@@ -169,25 +759,28 @@ def load_resilient_catalog(EMBEDDED_CATALOG, pd, repo_root):
 
 
 @app.cell
-def section_1_narrative(mo, raw_catalog_df, source_name):
-    sec1_md = mo.md(
-        f"""
-        ## 1. Data Ingestion & Cohort Exploration
-
-        We begin by loading our animation dataset. The active data tier is **`{source_name}`** containing **{len(raw_catalog_df):,}** total anime items.
-        Each anime is described by 11 core attributes: continuous reception signals (*Average Score, Popularity, Favorites*), temporal metadata (*Season Year*), structural formats (*Episode Count, Duration*), and categorical genres.
-
-        Use the **knobs below** to adjust the active cohort filter, sample size, and minimum score threshold.
-        """
-    )
-    return (sec1_md,)
+def _(raw_catalog_df):
+    raw_catalog_df
+    return
 
 
 @app.cell
-def ingestion_controls(mo, raw_catalog_df):
-    _max_n = max(50, min(3000, len(raw_catalog_df)))
-    _default_n = min(500, _max_n)
+def section_1_narrative(mo, raw_catalog_df, source_name):
+    mo.md(
+        f"""
+        ## 1. Data Ingestion & Cohort Exploration
 
+        We initiate the analytical pipeline by ingesting the catalog metadata. The active data tier is **`{source_name}`**, comprising **{len(raw_catalog_df):,}** animation entities.
+        Each observation is characterized by continuous reception metrics (community rating scores, log-scale popularity counts, and favorites counts), temporal coordinates (season release year), structural distribution parameters (episode volume, episode runtime duration), and discrete categorical genres.
+
+        The interactive controls below parameterize the active cohort filter, sample size $N$, and lower-bound score truncation threshold.
+        """
+    )
+    return
+
+
+@app.cell
+def ingestion_controls(mo):
     cohort_picker = mo.ui.dropdown(
         options={
             "All Productions (Global)": "all",
@@ -200,9 +793,9 @@ def ingestion_controls(mo, raw_catalog_df):
 
     sample_slider = mo.ui.slider(
         start=50,
-        stop=_max_n,
+        stop=5000,
         step=50,
-        value=_default_n,
+        value=500,
         label="Sample Volume (N)",
     )
 
@@ -213,22 +806,32 @@ def ingestion_controls(mo, raw_catalog_df):
         value=0,
         label="Min Score Filter",
     )
-
     return cohort_picker, min_score_slider, sample_slider
 
 
 @app.cell
-def display_ingestion_controls(cohort_picker, min_score_slider, mo, sample_slider):
+def display_ingestion_controls(
+    cohort_picker,
+    min_score_slider,
+    mo,
+    sample_slider,
+):
     ingestion_controls_view = mo.hstack(
         [cohort_picker, sample_slider, min_score_slider],
         justify="start",
         gap=1.5,
     )
-    return (ingestion_controls_view,)
+    ingestion_controls_view
+    return
 
 
 @app.cell
-def filter_and_subsample(cohort_picker, min_score_slider, raw_catalog_df, sample_slider):
+def filter_and_subsample(
+    cohort_picker,
+    min_score_slider,
+    raw_catalog_df,
+    sample_slider,
+):
     _df = raw_catalog_df.copy()
 
     # Filter cohort
@@ -251,11 +854,11 @@ def filter_and_subsample(cohort_picker, min_score_slider, raw_catalog_df, sample
 @app.cell
 def render_raw_inspection_table(df_active, mo):
     _display_cols = [c for c in ["title", "origin_cohort", "averageScore", "popularity", "seasonYear", "episodes", "duration", "genres"] if c in df_active.columns]
-    
+
     _summary_banner = mo.hstack([
-        mo.stat(value=f"{len(df_active):,}", label="Active Samples", caption="Ready for Feature Engineering", bordered=True),
-        mo.stat(value=f"{df_active['averageScore'].mean():.1f}/100", label="Mean Community Score", caption="Unimputed", bordered=True),
-        mo.stat(value=f"{int(df_active['seasonYear'].median())}", label="Median Release Year", caption=f"Range {int(df_active['seasonYear'].min())}–{int(df_active['seasonYear'].max())}", bordered=True),
+        mo.stat(value=f"{len(df_active):,}", label="Active Observations", caption="Subsampled Cohort Slice", bordered=True),
+        mo.stat(value=f"{df_active['averageScore'].mean():.1f}/100", label="Empirical Mean Score", caption="Continuous Scale", bordered=True),
+        mo.stat(value=f"{int(df_active['seasonYear'].median())}", label="Median Release Year", caption=f"Temporal Range {int(df_active['seasonYear'].min())}–{int(df_active['seasonYear'].max())}", bordered=True),
     ], justify="start", gap=1.0)
 
     _table = mo.ui.table(
@@ -265,28 +868,31 @@ def render_raw_inspection_table(df_active, mo):
 
     raw_inspection_view = mo.vstack([
         _summary_banner,
-        mo.md("#### Preview of Active Ingested Slice:"),
+        mo.md("#### Empirical Ingested Cohort Sample:"),
         _table,
     ])
-    return (raw_inspection_view,)
+    raw_inspection_view
+    return
 
 
 @app.cell
 def section_2_narrative(mo):
-    sec2_md = mo.md(
-        r"""
-        ---
-        ## 2. Data Cleaning & Feature Engineering
+    mo.md(r"""
+    ---
+    ## 2. Data Cleaning & Feature Engineering
 
-        Raw anime metadata presents two major statistical challenges:
-        1. **Extreme Heavy-Tailed Skewness**: Popularity and favorites span 4 orders of magnitude (e.g. 500 members to 600,000 members). Clustering raw values would cause a few mega-hits to dominate Euclidean distance. We apply **log-transformations** $\log(1 + x)$ to normalize these distributions.
-        2. **Multi-Scale Variance**: Scores range from $0$ to $100$, while episodes range from $1$ to $500+$. We standardize all numerical features to zero mean and unit variance using **StandardScaler** ($z = \frac{x - \mu}{\sigma}$).
-        3. **High-Cardinality Categoricals**: Genres are multi-hot encoded, and tags are vectorized into a dense representation using **TF-IDF**.
+    Raw animation metadata exhibits substantial heterogeneity across numerical and categorical features:
+    1. **Variance-Stabilizing Logarithmic Transformation**: Audience engagement signals ($x_{\text{pop}}$ and $x_{\text{fav}}$) span multiple orders of magnitude ($10^2$ to $10^6$), exhibiting extreme right-skewed power-law characteristics. We apply a natural logarithmic transformation:
+       $$\tilde{x} = \ln(1 + x)$$
+       to compress scale variance and prevent heavy-tailed outliers from dominating Euclidean distance calculations.
+    2. **Standard Score Normalization ($z$-Score Scaling)**: Because feature dimensions possess disparate units (ratings $0-100$, runtime $1-150$ minutes, episode counts $1-500+$), all continuous features are centered and scaled to zero empirical mean and unit empirical variance:
+       $$z = \frac{x - \mu}{\sigma}$$
+    3. **Sparse Categorical & Lexical Encoding**: Categorical genre indicators are transformed into multi-hot binary vectors. Where available, associated lexical tags are weighted via Term Frequency-Inverse Document Frequency (TF-IDF) vectorization:
+       $$\text{TF-IDF}(t, d, D) = \text{TF}(t, d) \times \ln\left(\frac{1 + |D|}{1 + |\{d \in D : t \in d\}|}\right) + 1$$
 
-        Tune the feature extraction parameter below:
-        """
-    )
-    return (sec2_md,)
+    Tune the lexical feature extraction resolution below:
+    """)
+    return
 
 
 @app.cell
@@ -304,11 +910,18 @@ def feature_engineering_controls(mo):
 @app.cell
 def display_fe_controls(max_tag_features_slider):
     fe_controls_view = max_tag_features_slider
+    fe_controls_view
     return (fe_controls_view,)
 
 
 @app.cell
-def clean_and_engineer_features(StandardScaler, TfidfVectorizer, df_active, max_tag_features_slider, np, pd):
+def clean_and_engineer_features(
+    StandardScaler,
+    TfidfVectorizer,
+    df_active,
+    max_tag_features_slider,
+    np,
+):
     _df = df_active.copy()
 
     # Impute missing values
@@ -323,7 +936,7 @@ def clean_and_engineer_features(StandardScaler, TfidfVectorizer, df_active, max_
     _df["log_popularity"] = np.log1p(_df["popularity"].clip(lower=0))
     _df["log_favourites"] = np.log1p(_df["favourites"].clip(lower=0))
     _df["log_episodes"] = np.log1p(_df["episodes"].clip(lower=1))
-    
+
     _min_year = _df["seasonYear"].min()
     _max_year = _df["seasonYear"].max()
     _df["recency"] = (_df["seasonYear"] - _min_year) / max(1.0, (_max_year - _min_year))
@@ -335,11 +948,11 @@ def clean_and_engineer_features(StandardScaler, TfidfVectorizer, df_active, max_
     _X_num = _scaler.fit_transform(_df[_num_cols].values)
 
     # Multi-label genre binary matrix
-    _all_genres = sorted({g for row in _df["genres"] if isinstance(row, list) for g in row})
+    _all_genres = sorted({g for _r in _df["genres"] if isinstance(_r, list) for g in _r})
     _genre_matrix = np.zeros((len(_df), len(_all_genres)), dtype=np.float32)
-    for i, row in enumerate(_df["genres"]):
-        if isinstance(row, list):
-            for g in row:
+    for i, _r in enumerate(_df["genres"]):
+        if isinstance(_r, list):
+            for g in _r:
                 if g in _all_genres:
                     _genre_matrix[i, _all_genres.index(g)] = 1.0
 
@@ -369,7 +982,12 @@ def clean_and_engineer_features(StandardScaler, TfidfVectorizer, df_active, max_
 
 
 @app.cell
-def plot_feature_transformation_distributions(alt, df_cleaned, mo):
+def plot_feature_transformation_distributions(
+    alt,
+    df_cleaned,
+    fe_controls_view,
+    mo,
+):
     chart_raw = (
         alt.Chart(df_cleaned)
         .mark_bar(color="#e74c3c", opacity=0.75)
@@ -377,47 +995,54 @@ def plot_feature_transformation_distributions(alt, df_cleaned, mo):
             x=alt.X("popularity:Q", bin=alt.Bin(maxbins=25), title="Raw Popularity (Heavy-Tailed)"),
             y=alt.Y("count()", title="Title Count"),
         )
-        .properties(width=340, height=200, title="Before: Exponential Skew")
+        .properties(width=340, height=200, title="Raw Feature Distribution: Exponential Skew")
     )
 
     chart_log = (
         alt.Chart(df_cleaned)
         .mark_bar(color="#2ecc71", opacity=0.75)
         .encode(
-            x=alt.X("log_popularity:Q", bin=alt.Bin(maxbins=25), title="Log Popularity [log(1 + pop)]"),
+            x=alt.X("log_popularity:Q", bin=alt.Bin(maxbins=25), title="Transformed Popularity: ln(1 + pop)"),
             y=alt.Y("count()", title="Title Count"),
         )
-        .properties(width=340, height=200, title="After: Normalized Gaussian-like")
+        .properties(width=340, height=200, title="Normalized Distribution: Variance-Stabilized")
     )
 
     fe_plots_view = mo.vstack([
-        mo.md("#### Impact of Mathematical Feature Normalization:"),
+        mo.md("#### Empirical Feature Distributions Before and After Normalization:"),
         alt.hconcat(chart_raw, chart_log),
     ])
-    return (fe_plots_view,)
+    fe_plots_view
+    return
 
 
 @app.cell
 def section_3_narrative(mo):
-    sec3_md = mo.md(
-        r"""
-        ---
-        ## 3. Dimensionality Reduction & Optimal Cluster Selection
+    mo.md(r"""
+    ---
+    ## 3. Dimensionality Reduction & Optimal Cluster Selection
 
-        Before partitioning the space, we must select an appropriate cluster count $k$.
-        We evaluate candidate $k \in [2, 10]$ across two complementary unsupervised heuristics:
-        1. **Elbow Method (Inertia / WCSS)**: Measures total within-cluster variance. Decreases monotonically; we look for the point of diminishing returns (*elbow knee*).
-        2. **Silhouette Coefficient**: Measures how well-separated clusters are relative to their nearest neighboring cluster ($-1.0$ to $+1.0$). Higher values indicate dense, well-isolated clusters.
-        """
-    )
-    return (sec3_md,)
+    Prior to partitioning the feature space $\mathbf{X} \in \mathbb{R}^{N \times D}$, we evaluate candidate cluster counts $k \in [2, 10]$ across two foundational unsupervised heuristics:
+    1. **Within-Cluster Sum of Squares (Inertia / Elbow Heuristic)**:
+       $$J(C) = \sum_{k=1}^K \sum_{x_i \in C_k} \| x_i - \mu_k \|^2$$
+       Measures total intra-cluster compactness. We evaluate the inflection point (diminishing marginal returns) along the inertia curve.
+    2. **Mean Silhouette Coefficient**:
+       $$s(i) = \frac{b(i) - a(i)}{\max(a(i), b(i))}, \quad s(i) \in [-1, 1]$$
+       where $a(i)$ denotes mean intra-cluster distance of sample $i$, and $b(i)$ denotes mean nearest-cluster distance. Higher values reflect dense, well-isolated cluster geometry.
+    """)
+    return
 
 
 @app.cell
-def evaluate_optimal_k_metrics(KMeans, engineered_features, pd, silhouette_score):
+def evaluate_optimal_k_metrics(
+    KMeans,
+    engineered_features,
+    pd,
+    silhouette_score,
+):
     _X = engineered_features
     _n = len(_X)
-    
+
     _k_range = list(range(2, min(10, _n)))
     _inertias = []
     _sil_scores = []
@@ -426,7 +1051,7 @@ def evaluate_optimal_k_metrics(KMeans, engineered_features, pd, silhouette_score
         _km = KMeans(n_clusters=_k_val, random_state=42, n_init=3)
         _lbls = _km.fit_predict(_X)
         _inertias.append(float(_km.inertia_))
-        
+
         # Subsample for instant reactivity if n > 1000
         _sil_sub = min(1000, _n)
         _s_score = float(silhouette_score(_X[:_sil_sub], _lbls[:_sil_sub]))
@@ -440,7 +1065,6 @@ def evaluate_optimal_k_metrics(KMeans, engineered_features, pd, silhouette_score
 
     # Recommended optimal k
     suggested_k = int(k_metrics_df.loc[k_metrics_df["silhouette"].idxmax(), "k"]) if not k_metrics_df.empty else 5
-
     return k_metrics_df, suggested_k
 
 
@@ -450,8 +1074,8 @@ def plot_diagnostic_curves(alt, k_metrics_df, mo, suggested_k):
         alt.Chart(k_metrics_df)
         .mark_line(point=True, color="#3498db")
         .encode(
-            x=alt.X("k:O", title="Candidate k"),
-            y=alt.Y("inertia:Q", title="Inertia (WCSS)"),
+            x=alt.X("k:O", title="Candidate Cluster Count (k)"),
+            y=alt.Y("inertia:Q", title="Inertia J(C) [WCSS]"),
             tooltip=["k", "inertia"],
         )
         .properties(width=340, height=220, title="Elbow Inertia Curve")
@@ -461,7 +1085,7 @@ def plot_diagnostic_curves(alt, k_metrics_df, mo, suggested_k):
         alt.Chart(k_metrics_df)
         .mark_bar(color="#9b59b6")
         .encode(
-            x=alt.X("k:O", title="Candidate k"),
+            x=alt.X("k:O", title="Candidate Cluster Count (k)"),
             y=alt.Y("silhouette:Q", title="Mean Silhouette Coefficient"),
             color=alt.condition(
                 alt.datum.k == suggested_k,
@@ -470,31 +1094,36 @@ def plot_diagnostic_curves(alt, k_metrics_df, mo, suggested_k):
             ),
             tooltip=["k", "silhouette"],
         )
-        .properties(width=340, height=220, title=f"Silhouette Optimization (Peak k = {suggested_k})")
+        .properties(width=340, height=220, title=f"Silhouette Optimization (Peak at k = {suggested_k})")
     )
 
     diagnostic_curves_view = mo.vstack([
         mo.callout(
-            f"💡 Mathematical Silhouette peak detected at **k = {suggested_k}**. Clusters at this resolution maximize internal cohesion while preserving distinct archetype boundaries.",
+            f"Empirical silhouette peak identified at k = {suggested_k}. Partitions at this resolution maximize intra-cluster cohesion while preserving inter-cluster separation boundaries.",
             kind="info",
         ),
         alt.hconcat(chart_inertia, chart_sil),
     ])
-    return (diagnostic_curves_view,)
+    diagnostic_curves_view
+    return
 
 
 @app.cell
 def section_4_narrative(mo):
-    sec4_md = mo.md(
-        """
-        ---
-        ## 4. Unsupervised Clustering & Empirical Archetype Profiling
+    mo.md(r"""
+    ---
+    ## 4. Unsupervised Clustering & Empirical Archetype Profiling
 
-        We now fit **K-Means** to discover discrete archetypes and run **DBSCAN** to detect density outliers and atypical avant-garde formats.
-        Adjust the hyperparameter knobs below to observe how clusters adapt in real time:
-        """
-    )
-    return (sec4_md,)
+    We fit $K$-Means clustering to discover canonical archetype centroids and complement the partitioning with Density-Based Spatial Clustering of Applications with Noise (DBSCAN) to identify atypical, sparse outliers:
+    - **$K$-Means Objective**: Iteratively minimizes $J(C)$ by assigning observations to the nearest centroid $\mu_k = \frac{1}{|C_k|} \sum_{x_i \in C_k} x_i$.
+    - **DBSCAN Density Metric**: Observations with fewer than $\text{min\_samples}$ neighbors within Euclidean radius $\varepsilon$ are classified as noise artifacts ($\text{cluster} = -1$).
+    - **Latent Space Decomposition**: Principal Component Analysis (PCA) decomposes the standardized feature covariance matrix:
+      $$\mathbf{\Sigma} = \frac{1}{N-1} \mathbf{X}^T \mathbf{X}, \quad \mathbf{\Sigma} \mathbf{w}_j = \lambda_j \mathbf{w}_j$$
+      projecting observations onto orthogonal eigenvectors $\mathbf{w}_1, \mathbf{w}_2$ that maximize explained variance.
+
+    Adjust the hyperparameter controls below to inspect parametric sensitivity:
+    """)
+    return
 
 
 @app.cell
@@ -514,18 +1143,28 @@ def clustering_hyperparameter_controls(mo, suggested_k):
         value=1.4,
         label="DBSCAN Radius (eps)",
     )
-
     return eps_slider, k_slider
 
 
 @app.cell
 def display_clustering_controls(eps_slider, k_slider, mo):
     clustering_controls_view = mo.hstack([k_slider, eps_slider], justify="start", gap=1.5)
-    return (clustering_controls_view,)
+    clustering_controls_view
+    return
 
 
 @app.cell
-def run_clustering_and_pca(DBSCAN, KMeans, PCA, df_cleaned, engineered_features, eps_slider, k_slider, np, pd):
+def run_clustering_and_pca(
+    DBSCAN,
+    KMeans,
+    PCA,
+    df_cleaned,
+    engineered_features,
+    eps_slider,
+    k_slider,
+    np,
+    pd,
+):
     _k = k_slider.value
     _eps = eps_slider.value
 
@@ -557,7 +1196,7 @@ def run_clustering_and_pca(DBSCAN, KMeans, PCA, df_cleaned, engineered_features,
         c_mask = _cluster_labels == cid
         c_df = df_clustered[c_mask]
         c_size = len(c_df)
-        
+
         mean_score = c_df["averageScore"].mean() if c_size > 0 else 0.0
         mean_pop = c_df["popularity"].mean() if c_size > 0 else 0.0
         med_year = c_df["seasonYear"].median() if c_size > 0 else 2015.0
@@ -599,7 +1238,6 @@ def run_clustering_and_pca(DBSCAN, KMeans, PCA, df_cleaned, engineered_features,
 
     df_clustered["archetype"] = df_clustered["cluster_id"].map(_archetype_map)
     archetype_summary_df = pd.DataFrame(_profile_rows)
-
     return archetype_summary_df, df_clustered, n_noise, var_exp
 
 
@@ -609,26 +1247,28 @@ def render_archetype_summary_table(archetype_summary_df, mo):
         mo.md("### Discovered Empirical Archetypes Profile Breakdown:"),
         mo.ui.table(archetype_summary_df, page_size=6),
     ])
-    return (archetype_summary_view,)
+    archetype_summary_view
+    return
 
 
 @app.cell
 def section_5_narrative(mo, var_exp):
-    sec5_md = mo.md(
-        f"""
+    _pc1 = f"{var_exp[0]*100:.1f}%"
+    _pc2 = f"{var_exp[1]*100:.1f}%"
+    mo.md(
+        r"""
         ---
         ## 5. Interactive Latent Space Map (Altair)
 
-        Below is a 2D projection of the dataset's high-dimensional feature space computed via Principal Component Analysis
-        (PC1 explains **{var_exp[0]*100:.1f}%**, PC2 explains **{var_exp[1]*100:.1f}%** of latent variance).
-        
-        ### 🖱️ How to Interact with the Map:
-        - **Hover** over any dot to inspect an anime's full metadata card.
-        - **Click and Drag** a bounding box (interval brush selection) across any group of points.
-        - The **Master-Detail Inspector table below will instantly filter** to display only the titles you highlighted!
+        The figure below projects observations into the two-dimensional principal component subspace $\mathbb{R}^2$ computed via PCA (PC1 accounts for **""" + _pc1 + r"""**, PC2 accounts for **""" + _pc2 + r"""** of latent variance).
+
+        ### Subspace Exploration Instructions:
+        - **Hover**: Inspect individual observations with metadata attributes including community rating, popularity, year of release, and genre labels.
+        - **Interval Bounding Box**: Click and drag across any continuous coordinate region in the projection manifold to isolate cluster subsets.
+        - **Reactive Master-Detail Inspector**: Downstream summary tables dynamically recalculate sample statistics based on the active selection.
         """
     )
-    return (sec5_md,)
+    return
 
 
 @app.cell
@@ -661,7 +1301,7 @@ def render_altair_interactive_cluster_map(alt, df_clustered, mo):
         .properties(
             width=700,
             height=460,
-            title="Latent Space Manifold Map (Click & Drag to Brush Inspect)",
+            title="Latent Space Manifold Map (Interval Brush Selection Enabled)",
         )
         .interactive()
     )
@@ -672,12 +1312,12 @@ def render_altair_interactive_cluster_map(alt, df_clustered, mo):
 
 @app.cell
 def display_cluster_map(cluster_map_widget):
-    cluster_map_view = cluster_map_widget
-    return (cluster_map_view,)
+    cluster_map_widget
+    return
 
 
 @app.cell
-def render_brushed_selection_inspector(cluster_map_widget, df_clustered, mo, pd):
+def render_brushed_selection_inspector(cluster_map_widget, df_clustered, mo):
     selected = cluster_map_widget.value
 
     # If nothing is selected via brush, display default top popular titles
@@ -691,12 +1331,12 @@ def render_brushed_selection_inspector(cluster_map_widget, df_clustered, mo, pd)
 
     status_callout = (
         mo.callout(
-            f"🎯 **Interactive Selection Active**: Inspecting **{n_selected}** titles highlighted in the brushed latent space region. Mean Score: **{mean_selected_score:.1f}/100**.",
+            f"Interactive Subspace Selection Active: Inspecting {n_selected} titles partitioned in the brushed latent space region. Empirical Mean Score: {mean_selected_score:.1f}/100.",
             kind="success",
         )
         if is_brushed
         else mo.callout(
-            "💡 **Click and drag a box across any cluster on the map above** to isolate and inspect anime titles in that region.",
+            "Click and drag an interval bounding box across any manifold region above to isolate and inspect anime titles in that subspace.",
             kind="info",
         )
     )
@@ -710,23 +1350,20 @@ def render_brushed_selection_inspector(cluster_map_widget, df_clustered, mo, pd)
         status_callout,
         detail_table,
     ])
-    return (inspector_view,)
+    inspector_view
+    return detail_table, inspector_view
 
 
 @app.cell
 def section_6_narrative(mo):
-    sec6_md = mo.md(
-        """
-        ---
-        ## 6. Comparative Cross-Market Insights (JP Domestic vs Overseas)
+    mo.md(r"""
+    ---
+    ## 6. Comparative Cross-Market Insights (JP Domestic vs Overseas)
 
-        One of the core findings of this project is that treating Chinese Donghua and Korean Aeni identically to
-        Japanese TV broadcast anime introduces **representation bias**.
-        
-        The chart below illustrates the structural divergence in **score vs. popularity density** between cohorts:
-        """
-    )
-    return (sec6_md,)
+    Treating Chinese Donghua and Korean Aeni as structurally identical to Japanese television broadcast anime introduces significant representation bias into catalog evaluations.
+    The bivariate distribution below contrasts **community popularity (logarithmic scale) against rating score** across origin cohorts. Notice the structural differences in audience acquisition patterns and format pacing between domestic broadcast franchises and digital web serials.
+    """)
+    return
 
 
 @app.cell
@@ -736,7 +1373,7 @@ def render_cross_market_comparison(alt, df_clustered, mo):
             alt.Chart(df_clustered)
             .mark_circle(size=70, opacity=0.65)
             .encode(
-                x=alt.X("popularity:Q", scale=alt.Scale(type="log"), title="Community Popularity (Log Scale)"),
+                x=alt.X("popularity:Q", scale=alt.Scale(type="log"), title="Community Popularity (Logarithmic Scale)"),
                 y=alt.Y("averageScore:Q", title="Average Rating Score (0-100)"),
                 color=alt.Color("origin_cohort:N", title="Cohort", scale=alt.Scale(domain=["jp", "non-jp"], range=["#3498db", "#e74c3c"])),
                 tooltip=["title", "origin_cohort", "averageScore", "popularity"],
@@ -751,35 +1388,37 @@ def render_cross_market_comparison(alt, df_clustered, mo):
         cross_market_view = comp_chart
     else:
         cross_market_view = mo.md("*Select 'All Productions (Global)' in Section 1 to view cross-market cohort contrast.*")
-
     return (cross_market_view,)
 
 
 @app.cell
+def _(cross_market_view):
+    cross_market_view
+    return
+
+
+@app.cell
 def section_7_narrative(mo):
-    sec7_md = mo.md(
-        """
-        ---
-        ## 7. Conclusions & Standalone WASM Deployment
+    mo.md(r"""
+    ---
+    ## 7. Synthesis & WebAssembly (WASM) Deployment
 
-        ### Key Discoveries:
-        1. **Latent Space Separation**: High-budget global blockbusters (*Attack on Titan*, *Frieren*, *Demon Slayer*) separate cleanly along PC1 from episodic television comedy and long-tail OVAs.
-        2. **Donghua Market Independence**: Chinese continuous web serials (*Soul Land*, *Battle Through the Heavens*) possess distinct duration-to-episode ratios that form dedicated sub-manifolds when analyzed without cohort suppression.
-        3. **Deterministic Cluster Archetypes**: Bounded stratified silhouette sampling guarantees reproducible cluster ranks and stable archetype assignments across varied sample sizes.
+    ### Summary of Empirical Findings:
+    1. **Principal Component Separation**: High-budget global commercial franchises separate distinctly along the primary principal component axis (PC1) from episodic television comedy and short-form OVA productions.
+    2. **Market Topology Divergence**: Chinese long-running digital web serials possess unique episode-to-duration ratios and distinct genre clustering behaviors that form dedicated sub-manifolds when analyzed without cohort suppression.
+    3. **Algorithmic Reproducibility**: Stratified subsampling combined with deterministic $K$-Means initialization guarantees stable archetype rankings across diverse sample volumes.
 
-        ---
-        ### 🚀 Deploying as a Serverless Client-Side WebAssembly (WASM) Notebook:
-        You can export this entire notebook into a standalone, zero-backend HTML file that runs **100% in any user's browser via Pyodide** without needing a Python server!
+    ---
+    ### Serverless Client-Side WebAssembly Deployment:
+    This reactive computational document can be compiled into a serverless, standalone HTML application that executes entirely in the client's browser through WebAssembly (Pyodide):
 
-        ```bash
-        # Compile to static client-side WASM HTML:
-        uv run marimo export html-wasm notebooks/anime_notebook.py --output reports/anime_notebook.wasm.html --mode run
-        ```
+    ```bash
+    uv run marimo export html-wasm notebooks/anime_notebook.py --output reports/anime_notebook.wasm.html --mode run
+    ```
 
-        The resulting file (`reports/anime_notebook.wasm.html`) can be hosted directly on **GitHub Pages, Netlify, Cloudflare Pages, or AWS S3** with zero backend infrastructure costs!
-        """
-    )
-    return (sec7_md,)
+    Hosting the exported artifact requires zero backend compute infrastructure, executing directly within standard web hosting environments.
+    """)
+    return
 
 
 if __name__ == "__main__":

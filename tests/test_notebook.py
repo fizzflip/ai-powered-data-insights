@@ -118,3 +118,46 @@ def test_notebook_real_file_integrity():
     if notebook_path.exists():
         assert not notebook_path.is_symlink(), "notebooks/anime_notebook.py must not be a symlink"
         assert root_path.read_text(encoding="utf-8") == notebook_path.read_text(encoding="utf-8")
+
+
+def test_notebook_academic_prose_and_zero_emojis():
+    """Verify complete emoji eradication, PEP 723 metadata header, and decoupled sqlite3 imports."""
+    import re
+
+    repo_root = Path(__file__).resolve().parent.parent
+    root_path = repo_root / "anime_notebook.py"
+    content = root_path.read_text(encoding="utf-8")
+
+    # 1. Zero emojis
+    emojis = re.findall(r"[\U00010000-\U0010ffff]|[\u2600-\u27bf]", content)
+    assert len(emojis) == 0, f"Found {len(emojis)} emojis in anime_notebook.py: {set(emojis)}"
+
+    # 2. PEP 723 metadata header
+    assert "# /// script" in content, "Missing PEP 723 script metadata header"
+    assert "altair>=" in content, "Missing altair in PEP 723 metadata"
+    assert "marimo>=" in content, "Missing marimo in PEP 723 metadata"
+
+    # 3. Decoupled from internal src modules for WASM portability
+    assert "from src." not in content, "Found prohibited 'from src.' import in anime_notebook.py"
+    assert "import src." not in content, "Found prohibited 'import src.' import in anime_notebook.py"
+
+
+def test_pyodide_standalone_html_export():
+    """Verify that the standalone single-file Pyodide application exists and has valid markup."""
+    repo_root = Path(__file__).resolve().parent.parent
+    pyodide_path = repo_root / "reports" / "anime_notebook.pyodide.html"
+    index_path = repo_root / "reports" / "index.html"
+
+    assert pyodide_path.exists(), f"Pyodide standalone HTML not found at {pyodide_path}"
+    assert pyodide_path.stat().st_size > 30000, f"Pyodide standalone HTML too small ({pyodide_path.stat().st_size} bytes)"
+
+    content = pyodide_path.read_text(encoding="utf-8")
+    assert "<!DOCTYPE html>" in content
+    assert "pyodide.js" in content
+    assert "vega-embed" in content
+    assert "Empirical Latent Space" in content
+
+    # Check mirror
+    assert index_path.exists(), f"reports/index.html mirror missing at {index_path}"
+    assert index_path.stat().st_size == pyodide_path.stat().st_size
+
