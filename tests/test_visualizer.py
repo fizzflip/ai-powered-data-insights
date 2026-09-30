@@ -20,7 +20,7 @@ def test_visualizer_generates_files():
     clustering = AnimeClusterer().run_clustering(preprocessed, k=5)
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        viz = ClusterVisualizer(random_state=42)
+        viz = ClusterVisualizer(random_state=42, dpi=50)
         paths = viz.generate_all(preprocessed, clustering, output_dir=tmpdir)
 
         assert "elbow_silhouette" in paths

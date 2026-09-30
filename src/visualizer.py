@@ -9,6 +9,7 @@ and markdown summary tables.
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 import logging
+import warnings
 
 import matplotlib
 
@@ -23,6 +24,9 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from tabulate import tabulate
 
+warnings.filterwarnings("ignore", message=".*Glyph.*missing from font.*")
+warnings.filterwarnings("ignore", message=".*The set_bad function will be deprecated.*")
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,6 +38,7 @@ class ClusterVisualizer:
         style: str = "whitegrid",
         palette: str = "tab10",
         random_state: int = 42,
+        dpi: int = 150,
     ) -> None:
         """Initialize visualizer styling and parameters.
 
@@ -45,11 +50,40 @@ class ClusterVisualizer:
             Color palette for distinct cluster archetypes.
         random_state : int, default=42
             Random seed for stochastic algorithms (e.g. t-SNE, PCA).
+        dpi : int, default=150
+            Rasterization dots per inch for saved figure outputs.
         """
         self.style = style
         self.palette_name = palette
         self.random_state = random_state
+        self.dpi = dpi
         sns.set_theme(style=self.style)
+
+        # Suppress noisy font manager fallback logs and configure multi-language font cascade
+        logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
+        plt.rcParams["font.sans-serif"] = [
+            "DejaVu Sans",
+            "Noto Sans CJK JP",
+            "Noto Sans CJK SC",
+            "Noto Sans CJK KR",
+            "WenQuanYi Zen Hei",
+            "TakaoPGothic",
+            "IPAGothic",
+            "Arial Unicode MS",
+            "Arial",
+            "sans-serif",
+        ]
+        plt.rcParams["axes.unicode_minus"] = False
+
+    @staticmethod
+    def _sanitize_title(title: str, max_chars: int = 35) -> str:
+        """Sanitize title text for clean plot rendering across all font environments."""
+        if not title:
+            return "Unknown"
+        s = str(title).strip().replace("\n", " ")
+        if len(s) > max_chars:
+            return s[: max_chars - 3] + "..."
+        return s
 
     def _get_color_map(
         self, unique_labels: List[int]
@@ -183,7 +217,7 @@ class ClusterVisualizer:
 
         if save_path:
             p = self._ensure_dir(save_path)
-            fig.savefig(p, bbox_inches="tight", dpi=300)
+            fig.savefig(p, bbox_inches="tight", dpi=self.dpi)
             logger.info("Saved elbow & silhouette plot to %s", p)
 
         return fig
@@ -239,7 +273,7 @@ class ClusterVisualizer:
                     dist = np.linalg.norm(pts - centroid, axis=1)
                     best_local_idx = np.argmin(dist)
                     global_idx = np.where(mask)[0][best_local_idx]
-                    exemplar_title = str(titles_list[global_idx])
+                    exemplar_title = self._sanitize_title(str(titles_list[global_idx]))
 
                     color = color_map[lbl]
                     ax.scatter(
@@ -289,7 +323,7 @@ class ClusterVisualizer:
 
         if save_path:
             p = self._ensure_dir(save_path)
-            fig.savefig(p, bbox_inches="tight", dpi=300)
+            fig.savefig(p, bbox_inches="tight", dpi=self.dpi)
             logger.info("Saved 2D PCA plot to %s", p)
 
         return fig
@@ -356,7 +390,7 @@ class ClusterVisualizer:
 
         if save_path:
             p = self._ensure_dir(save_path)
-            fig.savefig(p, bbox_inches="tight", dpi=300)
+            fig.savefig(p, bbox_inches="tight", dpi=self.dpi)
             logger.info("Saved 3D PCA plot to %s", p)
 
         return fig
@@ -369,16 +403,14 @@ class ClusterVisualizer:
         save_path: Optional[Union[str, Path]] = None,
         perplexity: float = 30.0,
         random_state: Optional[int] = None,
+        max_samples: int = 2000,
     ) -> plt.Figure:
-        """Plot 2D t-SNE manifold visualization."""
+        """Plot 2D t-SNE manifold visualization with stratified subsampling for large datasets."""
         X_arr = self._to_numpy(X)
         labels_arr = np.asarray(labels)
         seed = random_state if random_state is not None else self.random_state
 
         n_samples = X_arr.shape[0]
-        effective_perp = min(perplexity, max(1.0, float(n_samples - 1) / 3.0))
-        if effective_perp >= n_samples:
-            effective_perp = max(1.0, float(n_samples - 1))
 
         max_pca_comp = min(50, n_samples - 1, X_arr.shape[1])
         if X_arr.shape[1] > 50 and max_pca_comp >= 2:
@@ -386,24 +418,46 @@ class ClusterVisualizer:
         else:
             X_reduced = X_arr
 
+        # Stratified subsampling for fast, collision-free t-SNE rendering on large datasets
+        if n_samples > max_samples:
+            rng = np.random.RandomState(seed)
+            sub_indices = []
+            for lbl in np.unique(labels_arr):
+                lbl_indices = np.where(labels_arr == lbl)[0]
+                sample_n = max(5, int(len(lbl_indices) / n_samples * max_samples))
+                sub_indices.extend(
+                    rng.choice(lbl_indices, size=min(len(lbl_indices), sample_n), replace=False)
+                )
+            sub_indices = np.array(sorted(sub_indices))
+            X_tsne_input = X_reduced[sub_indices]
+            labels_tsne = labels_arr[sub_indices]
+        else:
+            X_tsne_input = X_reduced
+            labels_tsne = labels_arr
+
+        effective_perp = min(perplexity, max(1.0, float(len(X_tsne_input) - 1) / 3.0))
+        if effective_perp >= len(X_tsne_input):
+            effective_perp = max(1.0, float(len(X_tsne_input) - 1))
 
         tsne = TSNE(
             n_components=2,
             perplexity=effective_perp,
             random_state=seed,
-            init="pca" if effective_perp < n_samples else "random",
+            init="pca" if effective_perp < len(X_tsne_input) else "random",
             learning_rate="auto",
+            max_iter=500,
+            n_jobs=-1,
         )
-        X_tsne = tsne.fit_transform(X_reduced)
+        X_tsne = tsne.fit_transform(X_tsne_input)
 
-        unique_labels = sorted(np.unique(labels_arr))
+        unique_labels = sorted(np.unique(labels_tsne))
         color_map = self._get_color_map(unique_labels)
         archetype_map = archetype_map or {}
 
         fig, ax = plt.subplots(figsize=(11, 8))
 
         for lbl in unique_labels:
-            mask = labels_arr == lbl
+            mask = labels_tsne == lbl
             name = archetype_map.get(lbl, f"Cluster {lbl}")
             color = color_map[lbl]
             ax.scatter(
@@ -432,7 +486,7 @@ class ClusterVisualizer:
 
         if save_path:
             p = self._ensure_dir(save_path)
-            fig.savefig(p, bbox_inches="tight", dpi=300)
+            fig.savefig(p, bbox_inches="tight", dpi=self.dpi)
             logger.info("Saved 2D t-SNE plot to %s", p)
 
         return fig
@@ -491,7 +545,7 @@ class ClusterVisualizer:
 
         if save_path:
             p = self._ensure_dir(save_path)
-            fig.savefig(p, bbox_inches="tight", dpi=300)
+            fig.savefig(p, bbox_inches="tight", dpi=self.dpi)
             logger.info("Saved cluster heatmap to %s", p)
 
         return fig

@@ -119,6 +119,7 @@ class AnimeClusterer:
 
         elbow_inertias: Dict[int, float] = {}
         silhouette_scores: Dict[int, float] = {}
+        sil_sample_size = min(2500, n_samples) if n_samples > 1000 else None
 
         if eff_min_k >= 2 and eff_max_k >= eff_min_k:
             for k in range(eff_min_k, eff_max_k + 1):
@@ -129,7 +130,14 @@ class AnimeClusterer:
                 try:
                     labels = km.labels_
                     if len(np.unique(labels)) >= 2:
-                        sil = float(silhouette_score(X_arr, labels))
+                        sil = float(
+                            silhouette_score(
+                                X_arr,
+                                labels,
+                                sample_size=sil_sample_size,
+                                random_state=42,
+                            )
+                        )
                         silhouette_scores[k] = sil
                 except Exception:
                     pass

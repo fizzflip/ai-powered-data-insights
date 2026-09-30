@@ -23,6 +23,7 @@ def test_pipeline_offline_execution():
             figures_dir=fig_dir,
             offline_mode=True,
             generate_plots=True,
+            dpi=50,
         )
 
         pipeline = InsightsPipeline(config)

@@ -302,35 +302,45 @@ class DataPreprocessor:
         if "origin_cohort" not in df_clean.columns or "sub_origin" not in df_clean.columns:
             from src.origin_classifier import classify_anime_origin
 
-            cohorts: List[str] = []
-            suborigins: List[str] = []
-            for _, row_data in df_clean.iterrows():
-                # Fast path if already on row
-                cohort_val = row_data.get("origin_cohort")
-                sub_val = row_data.get("sub_origin")
-                is_jp_val = row_data.get("is_jp")
-
-                if pd.notna(cohort_val) and str(cohort_val) in ("jp", "non-jp"):
-                    cohorts.append(str(cohort_val))
-                    suborigins.append(str(sub_val) if pd.notna(sub_val) else ("JP" if cohort_val == "jp" else "OTHER"))
-                elif pd.notna(is_jp_val):
-                    is_jp_int = int(is_jp_val)
-                    cohorts.append("jp" if is_jp_int == 1 else "non-jp")
-                    suborigins.append(str(row_data.get("country_code", "JP" if is_jp_int == 1 else "OTHER")))
+            # Fast path: vectorized check if is_jp is present and valid
+            if "is_jp" in df_clean.columns and df_clean["is_jp"].notna().all():
+                is_jp_arr = pd.to_numeric(df_clean["is_jp"], errors="coerce").fillna(1).astype(int).to_numpy()
+                df_clean["origin_cohort"] = np.where(is_jp_arr == 1, "jp", "non-jp")
+                country_col = df_clean.get("country_code")
+                if country_col is not None:
+                    fallback_country = np.where(is_jp_arr == 1, "JP", "OTHER")
+                    df_clean["sub_origin"] = country_col.fillna(pd.Series(fallback_country, index=df_clean.index)).astype(str)
                 else:
-                    res = classify_anime_origin(row_data.to_dict())
-                    cohorts.append(res.origin_cohort)
-                    suborigins.append(res.sub_origin)
+                    df_clean["sub_origin"] = np.where(is_jp_arr == 1, "JP", "OTHER")
+            else:
+                cohorts: List[str] = []
+                suborigins: List[str] = []
+                # Fast iteration using to_dict('records') avoiding expensive pd.Series per-row overhead of iterrows()
+                records_list = df_clean.to_dict(orient="records")
+                for row_dict in records_list:
+                    cohort_val = row_dict.get("origin_cohort")
+                    sub_val = row_dict.get("sub_origin")
+                    is_jp_val = row_dict.get("is_jp")
 
-            df_clean["origin_cohort"] = cohorts
-            df_clean["sub_origin"] = suborigins
+                    if cohort_val and str(cohort_val) in ("jp", "non-jp"):
+                        cohorts.append(str(cohort_val))
+                        suborigins.append(str(sub_val) if sub_val else ("JP" if cohort_val == "jp" else "OTHER"))
+                    elif is_jp_val is not None and not pd.isna(is_jp_val):
+                        is_jp_int = int(is_jp_val)
+                        cohorts.append("jp" if is_jp_int == 1 else "non-jp")
+                        suborigins.append(str(row_dict.get("country_code") or ("JP" if is_jp_int == 1 else "OTHER")))
+                    else:
+                        res = classify_anime_origin(row_dict)
+                        cohorts.append(res.origin_cohort)
+                        suborigins.append(res.sub_origin)
+
+                df_clean["origin_cohort"] = cohorts
+                df_clean["sub_origin"] = suborigins
 
         return df_clean
 
-    def fit(self, df: pd.DataFrame) -> "DataPreprocessor":
-        """Fit all transformers and imputation values on input DataFrame."""
-        df_clean = self._prepare_cleaned_df(df, is_fit=True)
-
+    def _fit_transformers_from_cleaned(self, df_clean: pd.DataFrame) -> None:
+        """Fit all transformers on pre-cleaned DataFrame."""
         X_num = df_clean[self.numerical_features].to_numpy(dtype=np.float64)
         self.scaler.fit(X_num)
 
@@ -380,16 +390,10 @@ class DataPreprocessor:
             + list(self.genre_features)
             + list(self.tag_features)
         )
-
         self._is_fitted = True
-        return self
 
-    def transform(self, df: pd.DataFrame) -> PreprocessedData:
-        """Transform input DataFrame into PreprocessedData."""
-        if not self._is_fitted:
-            raise RuntimeError("DataPreprocessor must be fitted before calling transform().")
-
-        df_clean = self._prepare_cleaned_df(df, is_fit=False)
+    def _transform_from_cleaned(self, df_clean: pd.DataFrame) -> PreprocessedData:
+        """Transform pre-cleaned DataFrame using fitted transformers."""
         n_rows = len(df_clean)
 
         X_num = self.scaler.transform(df_clean[self.numerical_features].to_numpy(dtype=np.float64))
@@ -436,9 +440,25 @@ class DataPreprocessor:
             tag_features=list(self.tag_features),
         )
 
+    def fit(self, df: pd.DataFrame) -> "DataPreprocessor":
+        """Fit all transformers and imputation values on input DataFrame."""
+        df_clean = self._prepare_cleaned_df(df, is_fit=True)
+        self._fit_transformers_from_cleaned(df_clean)
+        return self
+
+    def transform(self, df: pd.DataFrame) -> PreprocessedData:
+        """Transform input DataFrame into PreprocessedData."""
+        if not self._is_fitted:
+            raise RuntimeError("DataPreprocessor must be fitted before calling transform().")
+
+        df_clean = self._prepare_cleaned_df(df, is_fit=False)
+        return self._transform_from_cleaned(df_clean)
+
     def fit_transform(self, df: pd.DataFrame) -> PreprocessedData:
-        """Fit and transform input DataFrame in one call."""
-        return self.fit(df).transform(df)
+        """Fit and transform input DataFrame in one single pass."""
+        df_clean = self._prepare_cleaned_df(df, is_fit=True)
+        self._fit_transformers_from_cleaned(df_clean)
+        return self._transform_from_cleaned(df_clean)
 
     def preprocess(self, df: pd.DataFrame) -> PreprocessedData:
         """Alias for fit_transform."""

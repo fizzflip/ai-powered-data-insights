@@ -9,6 +9,7 @@ visualization generation, and markdown findings reporting.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import concurrent.futures
 import copy
 import logging
 import os
@@ -46,6 +47,7 @@ class PipelineConfig:
     incremental: bool = True
     generate_plots: bool = True
     origin: str = "all"  # 'all', 'jp', 'non-jp', 'compare'
+    dpi: int = 150
 
 
 class InsightsPipeline:
@@ -75,7 +77,7 @@ class InsightsPipeline:
             min_tag_df=2,
         )
         self.clusterer = AnimeClusterer()
-        self.visualizer = ClusterVisualizer(random_state=42)
+        self.visualizer = ClusterVisualizer(random_state=42, dpi=self.config.dpi)
 
     def run(self) -> Dict[str, Any]:
         """Execute all stages of the clustering pipeline."""
@@ -585,19 +587,21 @@ def run_comparative_pipeline(config: PipelineConfig) -> Dict[str, Any]:
     """
     logger.info("=== Starting Comparative Origin Pipeline (JP vs Non-JP) ===")
 
-    # 1. Run Japanese Domestic pipeline
+    # 1. Run Japanese Domestic and Non-Japanese Overseas pipelines concurrently
     jp_config = copy.copy(config)
     jp_config.origin = "jp"
     jp_config.figures_dir = os.path.join(config.output_dir, "figures_jp")
-    jp_pipeline = InsightsPipeline(jp_config)
-    jp_results = jp_pipeline.run()
 
-    # 2. Run Non-Japanese Overseas pipeline
     non_jp_config = copy.copy(config)
     non_jp_config.origin = "non-jp"
     non_jp_config.figures_dir = os.path.join(config.output_dir, "figures_non_jp")
-    non_jp_pipeline = InsightsPipeline(non_jp_config)
-    non_jp_results = non_jp_pipeline.run()
+
+    logger.info("Executing JP and Non-JP cohort pipelines concurrently...")
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        f_jp = executor.submit(InsightsPipeline(jp_config).run)
+        f_njp = executor.submit(InsightsPipeline(non_jp_config).run)
+        jp_results = f_jp.result()
+        non_jp_results = f_njp.result()
 
     df_jp = jp_results["df"]
     df_non_jp = non_jp_results["df"]
@@ -611,7 +615,7 @@ def run_comparative_pipeline(config: PipelineConfig) -> Dict[str, Any]:
 
     comp_figures: Dict[str, str] = {}
     if config.generate_plots:
-        comp_visualizer = ComparativeVisualizer()
+        comp_visualizer = ComparativeVisualizer(dpi=config.dpi)
         comp_figures = comp_visualizer.generate_all_comparative(
             df_all=df_all,
             df_jp=df_jp,

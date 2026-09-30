@@ -15,6 +15,7 @@ import logging
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
+import warnings
 
 import matplotlib
 # Headless backend guarantee
@@ -24,6 +25,9 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
+warnings.filterwarnings("ignore", message=".*Glyph.*missing from font.*")
+warnings.filterwarnings("ignore", message=".*vert: bool was deprecated.*")
+
 logger = logging.getLogger("comparative_visualizer")
 
 
@@ -32,9 +36,22 @@ class ComparativeVisualizer:
     Renders high-resolution comparative charts contrasting JP and Non-JP anime markets.
     """
 
-    def __init__(self, style: str = "whitegrid") -> None:
+    def __init__(self, style: str = "whitegrid", dpi: int = 150) -> None:
+        self.dpi = dpi
         sns.set_theme(style=style)
-        plt.rcParams["font.sans-serif"] = ["DejaVu Sans", "Arial", "sans-serif"]
+        logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
+        plt.rcParams["font.sans-serif"] = [
+            "DejaVu Sans",
+            "Noto Sans CJK JP",
+            "Noto Sans CJK SC",
+            "Noto Sans CJK KR",
+            "WenQuanYi Zen Hei",
+            "TakaoPGothic",
+            "IPAGothic",
+            "Arial Unicode MS",
+            "Arial",
+            "sans-serif",
+        ]
         plt.rcParams["axes.unicode_minus"] = False
 
     def plot_origin_distribution(
@@ -87,7 +104,7 @@ class ComparativeVisualizer:
             ax2.text(0.5, 0.5, "No Non-JP Titles Found", ha="center", va="center")
 
         plt.tight_layout()
-        fig.savefig(save_file, dpi=300, bbox_inches="tight")
+        fig.savefig(save_file, dpi=self.dpi, bbox_inches="tight")
         plt.close(fig)
         logger.info("Saved origin distribution plot to %s", save_file)
         return str(save_file)
@@ -131,7 +148,7 @@ class ComparativeVisualizer:
         ax2.grid(True, linestyle="--", alpha=0.5)
 
         plt.tight_layout()
-        fig.savefig(save_file, dpi=300, bbox_inches="tight")
+        fig.savefig(save_file, dpi=self.dpi, bbox_inches="tight")
         plt.close(fig)
         logger.info("Saved score & popularity comparison to %s", save_file)
         return str(save_file)
@@ -181,7 +198,7 @@ class ComparativeVisualizer:
             ax2.grid(True, linestyle="--", alpha=0.5)
 
         plt.tight_layout()
-        fig.savefig(save_file, dpi=300, bbox_inches="tight")
+        fig.savefig(save_file, dpi=self.dpi, bbox_inches="tight")
         plt.close(fig)
         logger.info("Saved format comparison plot to %s", save_file)
         return str(save_file)
@@ -227,7 +244,7 @@ class ComparativeVisualizer:
         ax.legend(title="Cohort", fontsize=10)
 
         plt.tight_layout()
-        fig.savefig(save_file, dpi=300, bbox_inches="tight")
+        fig.savefig(save_file, dpi=self.dpi, bbox_inches="tight")
         plt.close(fig)
         logger.info("Saved genre divergence plot to %s", save_file)
         return str(save_file)

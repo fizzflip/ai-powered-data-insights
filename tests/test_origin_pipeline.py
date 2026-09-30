@@ -74,7 +74,7 @@ def test_comparative_visualizer_generation(temp_output_dir):
 
     df_all = pd.concat([df_jp, df_non_jp], ignore_index=True)
 
-    viz = ComparativeVisualizer()
+    viz = ComparativeVisualizer(dpi=50)
     fig_paths = viz.generate_all_comparative(
         df_all=df_all,
         df_jp=df_jp,

@@ -162,6 +162,12 @@ def parse_arguments() -> argparse.Namespace:
         choices=["all", "jp", "non-jp", "compare"],
         help="Origin cohort filter: 'all', 'jp', 'non-jp', or 'compare' (dual-cohort comparative run)",
     )
+    parser.add_argument(
+        "--dpi",
+        type=int,
+        default=150,
+        help="Figure rasterization resolution (dots per inch, default: 150)",
+    )
 
     return parser.parse_args()
 
@@ -252,6 +258,7 @@ def main() -> int:
         incremental=not args.no_incremental,
         generate_plots=not args.no_plots,
         origin=args.origin,
+        dpi=args.dpi,
     )
 
     try:
