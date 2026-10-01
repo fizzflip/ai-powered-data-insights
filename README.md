@@ -1,522 +1,442 @@
-# AI-Powered Anime Data Insights: Multi-Source Unsupervised Clustering, Latent Space Projections and Empirical Archetype Discovery
+# AI-Powered Anime Data Insights
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests: 61 Passed](https://img.shields.io/badge/tests-61%20passed%20(100%25)-brightgreen.svg)](tests/)
-[![Architecture: Reactive DAG](https://img.shields.io/badge/notebook-marimo%20reactive%20DAG-orange.svg)](notebooks/anime_notebook.py)
-[![Deployment: Serverless WASM](https://img.shields.io/badge/deployment-Netlify%20WASM%20%2F%20Pyodide-informational.svg)](reports/index.html)
+[![Tests: 64 Passed](https://img.shields.io/badge/tests-64%20passed%20(100%25)-brightgreen.svg)](tests/)
+[![Notebook: Marimo](https://img.shields.io/badge/notebook-marimo%20reactive%20DAG-orange.svg)](notebooks/anime_notebook.py)
+[![Deployment: Netlify WASM](https://img.shields.io/badge/deployment-Netlify%20WASM%20%2F%20Pyodide-informational.svg)](reports/index.html)
 
-An end-to-end Machine Learning and Data Science research suite that uncovers empirical, data-driven archetypes across animated media using unsupervised clustering, topological density estimation, and high-dimensional manifold projections.
+An end-to-end machine learning and analytics suite that discovers data-driven anime archetypes using unsupervised clustering, dimensionality reduction, and interactive reactive visualization.
 
-Powered by **AniList GraphQL**, **Kitsu JSON:API**, **Manami Offline Database**, **SQLite Storage Engine**, **Scikit-Learn**, **Pandas**, **Marimo Reactive Notebooks**, **Altair Interactive Visualizations**, and **Serverless WebAssembly (Pyodide)**.
+Built with **AniList GraphQL**, **Kitsu API**, **Manami Database** (40k+ titles), **SQLite**, **Scikit-Learn**, **Marimo**, **Altair**, and **Pyodide / WebAssembly**.
 
 ---
 
 ## Table of Contents
 
-1. [Executive Summary and Core Objectives](#1-executive-summary-and-core-objectives)
-2. [System Architecture and Classification Cascades](#2-system-architecture-and-classification-cascades)
-   - [2.1 End-to-End Pipeline Architecture](#21-end-to-end-pipeline-architecture)
-   - [2.2 5-Level Origin Cascade Hierarchy](#22-5-level-origin-cascade-hierarchy)
-3. [Mathematical and Algorithmic Formulation](#3-mathematical-and-algorithmic-formulation)
-   - [3.1 Sub-Linear Adaptive Cluster Scaling](#31-sub-linear-adaptive-cluster-scaling-k)
-   - [3.2 Feature Preprocessing and Vectorization Space](#32-feature-preprocessing-and-vectorization-space)
-   - [3.3 Unsupervised Objective Optimization](#33-unsupervised-objective-optimization)
-   - [3.4 Cluster Validation Diagnostics and Parsimony Scoring](#34-cluster-validation-diagnostics-and-parsimony-scoring)
-   - [3.5 Latent Space Projections](#35-latent-space-projections)
-4. [Empirical Archetype Discovery and Findings](#4-empirical-archetype-discovery-and-findings)
-   - [4.1 Canonical Archetype Discovery Table](#41-canonical-archetype-discovery-table)
-   - [4.2 Qualitative Persona Profiles](#42-qualitative-persona-profiles)
-5. [Multi-Step Database Scaling Benchmark](#5-multi-step-database-scaling-benchmark)
-6. [Asset Pruning and Edge Optimization Benchmark](#6-asset-pruning-and-edge-optimization-benchmark)
-7. [Interactive Pedagogical Artifacts and WebAssembly Deployment](#7-interactive-pedagogical-artifacts-and-webassembly-deployment)
-   - [7.1 Reactive Marimo DAG Notebook](#71-reactive-marimo-dag-notebook)
-   - [7.2 Altair Interval Brush Selection](#72-altair-interval-brush-selection)
-   - [7.3 Serverless WebAssembly and Pyodide Architecture](#73-serverless-webassembly-and-pyodide-architecture)
-   - [7.4 Netlify Deployment and Local Preview Emulation](#74-netlify-deployment-and-local-preview-emulation)
-8. [CLI Reference and Production Recipes](#8-cli-reference-and-production-recipes)
-   - [8.1 Command-Line Interface Table](#81-command-line-interface-table)
-   - [8.2 Production Copy-Paste Recipes](#82-production-copy-paste-recipes)
-9. [Comprehensive Automated Test Suite](#9-comprehensive-automated-test-suite)
-10. [Repository File Structure](#10-repository-file-structure)
+1. [Overview](#1-overview)
+2. [Architecture](#2-architecture)
+   - [Pipeline Architecture](#pipeline-architecture)
+   - [Origin Classification Cascade](#origin-classification-cascade)
+3. [Methodology](#3-methodology)
+   - [Adaptive Cluster Scaling](#adaptive-cluster-scaling)
+   - [Feature Engineering](#feature-engineering)
+   - [Clustering and Outlier Detection](#clustering-and-outlier-detection)
+   - [Model Selection](#model-selection)
+   - [Dimensionality Reduction](#dimensionality-reduction)
+4. [Discovered Archetypes](#4-discovered-archetypes)
+   - [Archetype Summary](#archetype-summary)
+   - [Persona Profiles](#persona-profiles)
+5. [Scaling Benchmark](#5-scaling-benchmark)
+6. [Web Optimization](#6-web-optimization)
+   - [Compression Benchmarks](#compression-benchmarks)
+   - [Packaging Pipeline](#packaging-pipeline)
+7. [Interactive Notebook and Web App](#7-interactive-notebook-and-web-app)
+   - [Marimo Reactive Notebook](#marimo-reactive-notebook)
+   - [Interactive Exploration](#interactive-exploration)
+   - [WebAssembly and Pyodide](#webassembly-and-pyodide)
+   - [Netlify Deployment](#netlify-deployment)
+8. [CLI Reference](#8-cli-reference)
+   - [CLI Options](#cli-options)
+   - [Quick Recipes](#quick-recipes)
+9. [Testing](#9-testing)
+10. [Project Structure](#10-project-structure)
 11. [License](#11-license)
 
 ---
 
-## 1. Executive Summary and Core Objectives
+## 1. Overview
 
-Traditional exploration of animated media relies heavily on rigid, publisher-assigned genre tags (such as "Action", "Romance", or "Fantasy") and superficial popularity rankings. These taxonomies fail to capture structural nuances, era shifts, audience devotion dynamics, and cross-market production characteristics (such as Japanese domestic television versus Chinese Donghua and Korean Aeni).
+Traditional categorization of animated media relies on publisher genre tags (such as "Action", "Romance", or "Fantasy") and popularity rankings. These broad categories often miss key differences: era shifts, audience devotion versus casual viewership, and production characteristics across different regions (such as Japanese television vs. Chinese Donghua and Korean Aeni).
 
-This project replaces artificial classification labels with unsupervised machine learning. By extracting high-dimensional metadata representations and mapping them into dense vector spaces, the system uncovers natural clusters characterized by true mathematical centroid coordinates.
+This project uses unsupervised machine learning to group anime by their true metadata attributes—ratings, episode formats, release eras, devotion ratios, and thematic tags—revealing natural, data-driven archetypes.
 
 ### Key Capabilities
 
-1. **Multi-Source Ingestion with Fallback Resilience**: Automated harvesting from AniList GraphQL with automatic failover to Kitsu JSON:API, polite rate-limiting ($0.6\text{s}$ delay), and comprehensive offline ingestion from the Manami catalog (40,654 records).
-2. **Deterministic 5-Level Origin Cascade**: Multi-signal classification isolating Japanese domestic productions (`jp`) from international cohorts (`non-jp`: Chinese Donghua, Korean Aeni, and Western animation) via country metadata, tag keywords, animation studio gazetteers, and Unicode script detection.
-3. **Dynamic Cluster Scaling ($k$)**: A sub-linear power-law heuristic that automatically expands candidate cluster search intervals $[k_{\min}(N), k_{\max}(N)]$ and selects optimal cluster counts based on catalog volume $N$, preventing over-fragmentation on small datasets and coarse over-merging on large catalogs.
-4. **Collision-Free Archetype Profiler**: Centroid-based empirical persona naming with secondary trait discriminators, guaranteeing unique, human-interpretable labels with zero duplicate collisions regardless of $k$.
-5. **Interactive Marimo Reactive DAG Notebook**: A zero-backend, browser-executable notebook with Altair interval brush selection, allowing real-time parametric clustering, noise exploration, and master-detail subspace inspection.
-6. **Production WebAssembly and Netlify Drop Deployment**: Edge deployment architecture packing the 40,000+ title catalog into a $1.14\text{ MB}$ compressed payload (`data/anime_catalog_compact.json.gz`), paired with pre-configured Netlify headers for Cross-Origin Isolation (`COOP` and `COEP`).
+- **Multi-Source Ingestion**: Fetches from AniList GraphQL with automatic Kitsu API failover and bulk offline indexing of 40,654 titles from the Manami dataset into SQLite.
+- **Origin Classification**: Segments Japanese anime (`jp`) from international productions (`non-jp`: Chinese Donghua, Korean Aeni, Western animation) through a deterministic 5-level cascade.
+- **Adaptive Clustering**: Automatically scales the number of clusters $k$ as catalog size $N$ grows ($k \propto N^{0.26}$), avoiding over-splitting on small samples or over-merging on large catalogs.
+- **Collision-Free Archetype Profiling**: Names clusters dynamically using centroid coordinates and secondary trait discriminators, guaranteeing unique, human-readable labels.
+- **Interactive Reactive Notebook**: In-browser Marimo notebook with Altair interval brushing, letting users select coordinate subspaces and inspect clusters in real time.
+- **WebAssembly Deployment**: Client-side execution via Pyodide and WebAssembly, featuring a 1.14 MB compressed catalog and one-step Netlify Drop export.
 
 ---
 
-## 2. System Architecture and Classification Cascades
+## 2. Architecture
 
-### 2.1 End-to-End Pipeline Architecture
+### Pipeline Architecture
 
 ```mermaid
 flowchart TD
-    subgraph S1["Data Ingestion and Harvesting"]
-        A1["AniList GraphQL API"] -->|Primary Source| B["MultiSourceFetcher"]
-        A2["Kitsu JSON:API"] -->|Automatic Failover| B
-        A3["Manami JSONL Database<br/>(40,654 titles)"] -->|Offline Bulk Ingestion| C["OfflineIndexer"]
-        B -->|Rate-Limited Batches| D["AnimeCatalogDB (SQLite)"]
-        C -->|Mappings and Relations| D
+    subgraph S1["Data Ingestion"]
+        A1["AniList GraphQL"] -->|Primary Source| B["MultiSourceFetcher"]
+        A2["Kitsu API"] -->|Automatic Failover| B
+        A3["Manami JSONL<br/>(40,654 titles)"] -->|Offline Bulk Load| C["OfflineIndexer"]
+        B -->|Batched Storage| D["AnimeCatalogDB (SQLite)"]
+        C -->|Indexed Relations| D
     end
 
-    subgraph S2["Storage and Relational Deduplication"]
-        D --> E1["Tier 1: Canonical External ID Matching"]
-        E1 --> E2["Tier 2: Relational Boundary Guard (Prequel/Sequel Protection)"]
-        E2 --> E3["Tier 3: Sanitized Title and Era Consolidation"]
-        E3 --> F["De-duplicated Local Catalog"]
+    subgraph S2["Deduplication"]
+        D --> E1["Tier 1: Canonical External ID"]
+        E1 --> E2["Tier 2: Relational Boundary Guard"]
+        E2 --> E3["Tier 3: Sanitized Title Matching"]
+        E3 --> F["Deduplicated Catalog"]
     end
 
-    subgraph S3["Preprocessing and Feature Engineering"]
-        F --> G1["Continuous Feature Scaling (StandardScaler)"]
-        F --> G2["Heavy-Tail Transformation: ln(1 + pop)"]
-        F --> G3["Recency and Favorites-to-Popularity Ratios"]
-        F --> G4["Multi-Label Genre Indicator Encoding"]
-        F --> G5["TF-IDF Thematic Tag Vectorization"]
-        G1 & G2 & G3 & G4 & G5 --> H["High-Dimensional Feature Matrix X"]
+    subgraph S3["Feature Engineering"]
+        F --> G1["Continuous Scaling (StandardScaler)"]
+        F --> G2["Log Transform: ln(1 + popularity)"]
+        F --> G3["Recency & Favorites Ratio"]
+        F --> G4["Multi-Label Genre Encoding"]
+        F --> G5["TF-IDF Thematic Tags"]
+        G1 & G2 & G3 & G4 & G5 --> H["Feature Matrix X"]
     end
 
-    subgraph S4["Unsupervised Clustering Engine"]
-        H --> I1["Adaptive Range Calculator [k_min, k_max]"]
-        I1 --> I2["K-Means Objective Optimization"]
-        H --> I3["DBSCAN Density and Outlier Isolation"]
-        I2 --> I4["Parsimony-Penalized Silhouette Selection"]
-        I4 --> J["Empirical Archetype Profiler"]
+    subgraph S4["Clustering Engine"]
+        H --> I1["Adaptive Bounds [k_min, k_max]"]
+        I1 --> I2["K-Means Clustering"]
+        H --> I3["DBSCAN Outlier Detection"]
+        I2 --> I4["Silhouette & Parsimony Selection"]
+        I4 --> J["Archetype Profiler"]
     end
 
-    subgraph S5["Latent Space Projection and Artifacts"]
-        H --> K1["PCA (2D and 3D Projections)"]
-        H --> K2["t-SNE Non-Linear Manifold Embedding"]
-        J & K1 & K2 --> L1["High-Resolution Static Plots (300 DPI)"]
-        J & K1 & K2 --> L2["Reports and Findings Documentation"]
-        J & K1 & K2 --> L3["Marimo Reactive DAG Notebook"]
-        J & K1 & K2 --> L4["Netlify Serverless WASM Deployment"]
+    subgraph S5["Visualizations & Deployment"]
+        H --> K1["PCA (2D / 3D)"]
+        H --> K2["t-SNE Projection"]
+        J & K1 & K2 --> L1["Static Figures (300 DPI)"]
+        J & K1 & K2 --> L2["Markdown Reports"]
+        J & K1 & K2 --> L3["Marimo Reactive Notebook"]
+        J & K1 & K2 --> L4["Netlify WebAssembly App"]
     end
 ```
 
-### 2.2 5-Level Origin Cascade Hierarchy
+### Origin Classification Cascade
 
-To guarantee deterministic cohort assignment without circular logic, anime records traverse a strict priority hierarchy:
+To classify anime into regional cohorts without circular rules, titles pass through five priority checks:
 
 ```mermaid
 flowchart TD
-    Start["Raw Anime Metadata Record"] --> L1{"Level 1: Country Metadata<br/>Explicit countryOfOrigin present?"}
-    L1 -->|Yes: JP| JP1["Assign 'jp' / Sub-origin 'JP'"]
-    L1 -->|Yes: CN, TW, HK| CN1["Assign 'non-jp' / Sub-origin 'CN'"]
-    L1 -->|Yes: KR, KP| KR1["Assign 'non-jp' / Sub-origin 'KR'"]
-    L1 -->|Yes: US, GB, FR, DE, etc.| W1["Assign 'non-jp' / Sub-origin 'WESTERN'"]
+    Start["Anime Metadata"] --> L1{"Level 1: Country Code<br/>Explicit country present?"}
+    L1 -->|JP| JP1["'jp' / 'JP'"]
+    L1 -->|CN, TW, HK| CN1["'non-jp' / 'CN'"]
+    L1 -->|KR, KP| KR1["'non-jp' / 'KR'"]
+    L1 -->|US, GB, FR, etc.| W1["'non-jp' / 'WESTERN'"]
     
-    L1 -->|No / Ambiguous| L2{"Level 2: Tag Heuristics<br/>Donghua, Aeni, or Western keywords?"}
-    L2 -->|Match Donghua / Manhua| CN2["Assign 'non-jp' / Sub-origin 'CN'"]
-    L2 -->|Match Aeni / Webtoon| KR2["Assign 'non-jp' / Sub-origin 'KR'"]
-    L2 -->|Match Western / Cartoon| W2["Assign 'non-jp' / Sub-origin 'WESTERN'"]
-    L2 -->|Match Japanese Production| JP2["Assign 'jp' / Sub-origin 'JP'"]
+    L1 -->|Missing / Other| L2{"Level 2: Tag Keywords<br/>Donghua, Aeni, Cartoon?"}
+    L2 -->|Donghua / Manhua| CN2["'non-jp' / 'CN'"]
+    L2 -->|Aeni / Webtoon| KR2["'non-jp' / 'KR'"]
+    L2 -->|Western / Cartoon| W2["'non-jp' / 'WESTERN'"]
+    L2 -->|Japanese Production| JP2["'jp' / 'JP'"]
     
-    L2 -->|No Match| L3{"Level 3: Studio Provenance<br/>Animation Studio Gazetteer"}
-    L3 -->|Haoliners, Tencent, Sparkly Key| CN3["Assign 'non-jp' / Sub-origin 'CN'"]
-    L3 -->|Studio Mir, DR Movie, Studio Gale| KR3["Assign 'non-jp' / Sub-origin 'KR'"]
-    L3 -->|Rooster Teeth, Powerhouse, Titmouse| W3["Assign 'non-jp' / Sub-origin 'WESTERN'"]
-    L3 -->|Toei, MAPPA, Bones, Madhouse, Ufotable| JP3["Assign 'jp' / Sub-origin 'JP'"]
+    L2 -->|No Match| L3{"Level 3: Studio Registry<br/>Known studio list"}
+    L3 -->|Haoliners, Tencent, Sparkly Key| CN3["'non-jp' / 'CN'"]
+    L3 -->|Studio Mir, DR Movie, Studio Gale| KR3["'non-jp' / 'KR'"]
+    L3 -->|Rooster Teeth, Powerhouse, Titmouse| W3["'non-jp' / 'WESTERN'"]
+    L3 -->|Toei, MAPPA, Bones, Madhouse, Ufotable| JP3["'jp' / 'JP'"]
     
-    L3 -->|No Match| L4{"Level 4: Unicode Script Regex<br/>Native Title and Synonyms"}
-    L4 -->|Hangul: AC00-D7AF, 1100-11FF| KR4["Assign 'non-jp' / Sub-origin 'KR'"]
-    L4 -->|Bopomofo: 3100-312F| CN4["Assign 'non-jp' / Sub-origin 'CN'"]
-    L4 -->|Kana: 3040-309F, 30A0-30FF| JP4["Assign 'jp' / Sub-origin 'JP'"]
+    L3 -->|No Match| L4{"Level 4: Script Detection<br/>Title characters"}
+    L4 -->|Hangul: Korean script| KR4["'non-jp' / 'KR'"]
+    L4 -->|Bopomofo: Taiwanese script| CN4["'non-jp' / 'CN'"]
+    L4 -->|Kana: Japanese script| JP4["'jp' / 'JP'"]
     
-    L4 -->|No Script Distinction| L5["Level 5: Baseline Default<br/>Assign Domestic Baseline 'jp' / 'JP'"]
+    L4 -->|No Match| L5["Level 5: Baseline Default<br/>Assign 'jp' / 'JP'"]
 ```
 
 ---
 
-## 3. Mathematical and Algorithmic Formulation
+## 3. Methodology
 
-### 3.1 Sub-Linear Adaptive Cluster Scaling ($k$)
+### Adaptive Cluster Scaling
 
-Fixed cluster counts fail across diverse catalog scales. Small datasets suffer from over-fragmentation into uninterpretable singletons, while large catalogs collapse distinct sub-genres into uninformative mega-clusters.
+Fixed cluster counts do not scale across datasets: small samples get over-fragmented, while large catalogs merge distinct sub-genres into uninformative groups.
 
-We define an empirical sub-linear power-law heuristic to govern candidate cluster search bounds $[k_{\min}(N), k_{\max}(N)]$ and anchor targets $k_{\text{target}}(N)$ as a function of catalog volume $N$:
+The system determines the target cluster count $k$ using a sub-linear power law based on sample size $N$:
 
 $$k_{\text{target}}(N) = \text{clip}\left(\left\lfloor 1.15 \cdot N^{0.26} \right\rfloor, 3, 10\right)$$
 
-$$k_{\min}(N) = \max\left(2, k_{\text{target}}(N) - 1\right)$$
+The candidate search range $[k_{\min}, k_{\max}]$ is bounded around $k_{\text{target}} \pm 1$ and clamped between 2 and 12. As catalog volume expands from 150 to 2,000+ items, $k$ scales smoothly ($3 \to 5 \to 7$), keeping cluster sizes statistically balanced.
 
-$$k_{\max}(N) = \min\left(N - 1, 12, k_{\text{target}}(N) + 1\right)$$
+### Feature Engineering
 
-This mathematical formulation guarantees:
-- **Monotonic Progression**: $k_{\min}(N_a) \le k_{\min}(N_b)$ and $k_{\max}(N_a) \le k_{\max}(N_b)$ for all $N_a \le N_b$.
-- **Boundary Safety**: $2 \le k_{\min} \le k_{\text{target}} \le k_{\max} \le 12$ for all $N \ge 3$.
-- **Sub-Linearity**: Growth scales proportionally to $N^{0.26}$, preserving statistical power per partition.
+Raw metadata is transformed into numerical vectors across five areas:
 
-### 3.2 Feature Preprocessing and Vectorization Space
+1. **Popularity (Log Transform)**: Viewership and favorites follow heavy-tailed distributions. Applying $\ln(1 + \text{popularity})$ stabilizes variance across viral hits and niche titles.
+2. **Ratings & Format (Standardization)**: Average scores, episode counts, and durations are centered to zero mean and unit variance ($z = \frac{x - \mu}{\sigma}$).
+3. **Recency**: Release year is scaled linearly to $[0, 1]$ across the catalog's range.
+4. **Devotion Ratio**: A ratio of community favorites to popularity, $\text{favorites} / (\text{popularity} + 1.0)$, distinguishes titles with passionate followings from casual watches.
+5. **Genres & Tags**: Genre categories use multi-hot binary encoding, and thematic tags use TF-IDF weighting with $\ell_2$ normalization for top descriptors.
 
-The raw feature vector $\mathbf{x}_{\text{raw}} \in \mathbb{R}^D$ undergoes five transformation pipelines:
+### Clustering and Outlier Detection
 
-1. **Variance-Stabilizing Logarithmic Transform**:
-   Popularity and community favorites follow an exponential heavy-tailed distribution:
-   $$\tilde{x}_{\text{popularity}} = \ln(1 + x_{\text{popularity}})$$
+- **K-Means**: Partitions titles into $k$ groups by minimizing within-cluster distance to centroids.
+- **DBSCAN**: Identifies outliers and niche works in PCA space. Titles in low-density regions ($< 4$ neighbors within radius $\varepsilon = 1.2$) are flagged as noise ($\text{cluster} = -1$) so they do not distort cluster centroids.
 
-2. **Standardization**:
-   Continuous attributes (average community score, episodic duration, release season year) are standardized to zero mean and unit variance:
-   $$z_j = \frac{x_j - \mu_j}{\sigma_j}, \quad \mu_j = \frac{1}{N}\sum_{i=1}^N x_{ij}, \quad \sigma_j = \sqrt{\frac{1}{N}\sum_{i=1}^N (x_{ij} - \mu_j)^2}$$
+### Model Selection
 
-3. **Domain-Specific Ratios**:
-   - **Chronological Recency**:
-     $$\text{recency} = \frac{\text{year}_i - \min(\mathbf{year})}{\max(\mathbf{year}) - \min(\mathbf{year})}$$
-   - **Devotion Factor (`favorites_ratio` / Favorites-to-Popularity Ratio)**:
-     $$\text{favorites}_{\text{ratio}} = \frac{x_{\text{favourites}}}{x_{\text{popularity}} + \epsilon}, \quad \epsilon = 1.0$$
-
-4. **Multi-Label Categorical Binarization**:
-   Genre memberships $G_i \subseteq \mathcal{G}$ are mapped into an indicator vector $\mathbf{g}_i \in \{0, 1\}^{|\mathcal{G}|}$.
-
-5. **TF-IDF Tag Vectorization**:
-   Granular thematic tags $T_i$ are parsed and mapped via term frequency-inverse document frequency weighting:
-   $$\text{TF-IDF}(t, d, D) = \text{tf}(t, d) \cdot \left(\ln\left(\frac{1 + |D|}{1 + |\{d' \in D : t \in d'\}|}\right) + 1\right)$$
-   followed by Euclidean $\ell_2$ normalization:
-   $$\mathbf{v}_{\text{tag}} = \frac{\mathbf{v}}{\|\mathbf{v}\|_2}$$
-
-### 3.3 Unsupervised Objective Optimization
-
-The dense feature matrix $\mathbf{X} \in \mathbb{R}^{N \times M}$ is partitioned via $K$-Means clustering, which seeks to minimize the Within-Cluster Sum of Squares (Inertia):
-
-$$J(C) = \sum_{k=1}^K \sum_{\mathbf{x}_i \in C_k} \|\mathbf{x}_i - \boldsymbol{\mu}_k\|_2^2, \quad \boldsymbol{\mu}_k = \frac{1}{|C_k|} \sum_{\mathbf{x}_i \in C_k} \mathbf{x}_i$$
-
-To identify structural outliers and atypical niche works without distorting centroid coordinates, Density-Based Spatial Clustering of Applications with Noise (DBSCAN) is evaluated over the latent PCA subspace:
-
-$$N_\varepsilon(\mathbf{p}) = \{\mathbf{q} \in \mathcal{D} \mid \|\mathbf{p} - \mathbf{q}\|_2 \le \varepsilon\}$$
-
-Points with $|N_\varepsilon(\mathbf{p})| < \text{min}_{\text{samples}}$ are labeled as noise ($\text{cluster} = -1$).
-
-### 3.4 Cluster Validation Diagnostics and Parsimony Scoring
-
-Cluster separation and cohesion are evaluated using the Silhouette Coefficient:
+The final cluster count $k^*$ is selected from $[k_{\min}, k_{\max}]$ by maximizing the Silhouette Coefficient:
 
 $$s(i) = \frac{b(i) - a(i)}{\max(a(i), b(i))}, \quad s(i) \in [-1, 1]$$
 
-where $a(i)$ represents the mean intra-cluster distance between point $i$ and all other points in the same cluster $C_I$:
-$$a(i) = \frac{1}{|C_I| - 1} \sum_{j \in C_I, j \ne i} \|\mathbf{x}_i - \mathbf{x}_j\|$$
+where $a(i)$ is the mean distance to points in the same cluster, and $b(i)$ is the mean distance to the closest neighboring cluster. A parsimony penalty balances silhouette score against inertia reduction, preventing over-simplification.
 
-and $b(i)$ represents the minimum mean distance from point $i$ to any other cluster $C_J \ne C_I$:
-$$b(i) = \min_{J \ne I} \frac{1}{|C_J|} \sum_{j \in C_J} \|\mathbf{x}_i - \mathbf{x}_j\|$$
+### Dimensionality Reduction
 
-To prevent selecting an overly coarse clustering that artificially inflates silhouette scores while missing meaningful sub-genres, the system incorporates a parsimony-penalized selection objective:
+High-dimensional feature vectors are projected into lower dimensions for visualization:
 
-$$k^* = \arg\max_{k \in [k_{\min}, k_{\max}]} \left[ \bar{s}(k) - \lambda \left(\frac{k - k_{\min}}{k_{\max} - k_{\min}}\right)^2 + \alpha \frac{J(k_{\min}) - J(k)}{J(k_{\min})} \right]$$
-
-### 3.5 Latent Space Projections
-
-High-dimensional representations are projected into low-dimensional coordinate spaces:
-- **Principal Component Analysis (PCA)**: Decomposes the sample covariance matrix $\mathbf{\Sigma} = \frac{1}{N-1}\mathbf{X}^T\mathbf{X}$ into orthogonal eigenvectors $\mathbf{\Sigma} \mathbf{w}_j = \lambda_j \mathbf{w}_j$, capturing maximal explained variance.
-- **t-Distributed Stochastic Neighbor Embedding (t-SNE)**: Minimizes the Kullback-Leibler divergence between high-dimensional joint probabilities $p_{ij}$ and low-dimensional Student-t probabilities $q_{ij}$:
-  $$\text{KL}(P \parallel Q) = \sum_{i \ne j} p_{ij} \ln\frac{p_{ij}}{q_{ij}}$$
+- **PCA (2D & 3D)**: Captures dominant variance along orthogonal axes, highlighting global structure and score vs. popularity axes.
+- **t-SNE**: Preserves local neighborhoods, showing tightly linked sub-genre clusters.
 
 ---
 
-## 4. Empirical Archetype Discovery and Findings
+## 4. Discovered Archetypes
 
-### 4.1 Canonical Archetype Discovery Table
+### Archetype Summary
 
-Evaluation across representative titles from the 40,654-entry local catalog reveals five clear, data-driven behavioral archetypes:
+Evaluating titles from the 40,654-entry catalog reveals five clear, data-driven behavioral archetypes:
 
-| Cluster | Discovered Empirical Archetype | Catalog Share | Median Year | Mean Score | Mean Popularity | Favorites Ratio | Defining Genres and Thematic Tags | Representative Exemplars |
+| Cluster | Archetype | Share | Median Year | Mean Score | Mean Popularity | Devotion Ratio | Defining Traits | Exemplars |
 | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :--- | :--- |
-| **0** | **Modern Hits (Contemporary Drama)** | 35.2% | 2020 | 80.4 / 100 | 244,924 | 0.0332 | Drama, Comedy, Action<br/>*Male Protagonist, Heterosexual, Ensemble Cast* | *My Hero Academia S2*, *One-Punch Man S2*, *Kakegurui*, *Horimiya* |
-| **1** | **Low-Profile (Commercial Mid-Tier and Long-Tail)** | 31.0% | 2016 | 71.4 / 100 | 210,790 | 0.0166 | Action, Comedy, Fantasy<br/>*Male Protagonist, Heterosexual, School Setting* | *Blue Exorcist*, *Sword Art Online II*, *Future Diary*, *Tokyo Ghoul √A* |
-| **2** | **Modern Hits (Blockbuster Action)** | 18.2% | 2017 | 81.8 / 100 | 521,808 | 0.0497 | Action, Drama, Supernatural<br/>*Male Protagonist, Tragedy, High Production* | *Demon Slayer*, *JUJUTSU KAISEN*, *Attack on Titan*, *Tokyo Ghoul* |
-| **3** | **Specialized Archetype (Drama Focus)** | 9.4% | 2017 | 82.3 / 100 | 259,891 | 0.0356 | Drama, Fantasy, Romance<br/>*Female Protagonist, Tragedy, Emotional Peak* | *A Silent Voice*, *Your Name.*, *Mugen Train*, *Spirited Away* |
-| **4** | **Classics (Legacy Masterworks - High Devotion)** | 6.2% | 2002 | 81.4 / 100 | 293,789 | 0.0540 | Action, Comedy, Adventure<br/>*Philosophy, Cult Appeal, Enduring Longevity* | *Naruto*, *Death Note*, *Hunter x Hunter (2011)*, *Neon Genesis Evangelion* |
+| **0** | **Modern Hits (Contemporary Drama)** | 35.2% | 2020 | 80.4 / 100 | 244,924 | 0.0332 | Drama, Comedy, Action<br/>*Ensemble Cast, School Setting* | *My Hero Academia S2*, *One-Punch Man S2*, *Horimiya* |
+| **1** | **Low-Profile (Mid-Tier & Long-Tail)** | 31.0% | 2016 | 71.4 / 100 | 210,790 | 0.0166 | Action, Comedy, Fantasy<br/>*Adaptations, School Setting* | *Blue Exorcist*, *Sword Art Online II*, *Future Diary* |
+| **2** | **Modern Hits (Blockbuster Action)** | 18.2% | 2017 | 81.8 / 100 | 521,808 | 0.0497 | Action, Drama, Supernatural<br/>*High Production, Broad Reach* | *Demon Slayer*, *JUJUTSU KAISEN*, *Attack on Titan* |
+| **3** | **Specialized Archetype (Drama Focus)** | 9.4% | 2017 | 82.3 / 100 | 259,891 | 0.0356 | Drama, Fantasy, Romance<br/>*Theatrical, Emotional Storytelling* | *A Silent Voice*, *Your Name.*, *Spirited Away* |
+| **4** | **Classics (Legacy High-Devotion)** | 6.2% | 2002 | 81.4 / 100 | 293,789 | 0.0540 | Action, Adventure, Cult Appeal<br/>*High Devotion, Enduring Legacy* | *Naruto*, *Death Note*, *Hunter x Hunter*, *Evangelion* |
 
-### 4.2 Qualitative Persona Profiles
+### Persona Profiles
 
-1. **Modern Hits (Contemporary Drama - Cluster 0)**:
-   Dominates catalog volume. Captures seasonal broadcast television characterized by modern production techniques, balanced community scores, and consistent engagement.
-2. **Low-Profile Commercial Mid-Tier (Cluster 1)**:
-   Represents commercial studio adaptations (light novels, serialized manga). Shows moderate reception and lower favorites ratios, functioning as audience filler between marquee franchise installments.
-3. **Modern Blockbusters (Cluster 2)**:
-   The mainstream apex. High mean popularity ($>500,000$ members) and strong community devotion ($0.0497$ favorites ratio). Bridges global social-media trends with domestic ratings.
-4. **Specialized Theatrical Drama (Cluster 3)**:
-   Concentrates theatrical feature films and high-concept mini-series. Characterized by female protagonists, elevated artistic acclaim ($82.3$ score), and narrative closure.
-5. **High-Devotion Classics (Cluster 4)**:
-   The legacy canon (median year 2002). Highest devotion factor ($0.0540$). Demonstrates that older masterworks retain active fan bases and high per-capita loyalty long after broadcast completion.
+1. **Modern Hits (Contemporary Drama - Cluster 0)**: Seasonal television broadcast anime with modern animation quality, balanced scores, and consistent viewer engagement.
+2. **Low-Profile Mid-Tier (Cluster 1)**: Commercial serialized adaptations (light novels, manga) with moderate scores and lower devotion ratios, filling schedules between marquee releases.
+3. **Modern Blockbusters (Cluster 2)**: Top-tier franchise hits with large audiences ($>500,000$ members) and high fan engagement ($0.0497$ devotion ratio).
+4. **Specialized Theatrical Drama (Cluster 3)**: Standalone films and prestige mini-series with high critical acclaim ($82.3$ score) and strong narrative closure.
+5. **High-Devotion Classics (Cluster 4)**: Legacy canon (median release year 2002) with the highest devotion ratio ($0.0540$), showing that classic titles retain loyal followings long after airing.
 
 ---
 
-## 5. Multi-Step Database Scaling Benchmark
+## 5. Scaling Benchmark
 
-To demonstrate that the pipeline adapts dynamically as catalog volume expands, the scaling harness (`scripts/demonstrate_scaling.py` / `python main.py --run-scaling-steps`) evaluates three sequential database states:
+To evaluate how clustering adapts as data grows, the scaling benchmark (`python main.py --run-scaling-steps`) tests three sequential catalog sizes:
 
-### 5.1 Progression Matrix
+### Benchmark Results
 
-| Step | Database Volume ($N$) | Candidate Range $[k_{\min}, k_{\max}]$ | Anchor Target $k_{\text{target}}$ | Selected $k^*$ | Silhouette Score | Inertia ($WCSS$) | Archetype Uniqueness | Wall-Clock Latency |
+| Step | Records ($N$) | Search Range $[k_{\min}, k_{\max}]$ | Target $k$ | Chosen $k^*$ | Silhouette | Inertia ($WCSS$) | Unique Labels | Runtime |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Step 1** | 150 | $[3, 5]$ | 4 | **3** | 0.1701 | 1,242.05 | 3 / 3 (100%) | 0.35s |
 | **Step 2** | 600 | $[5, 7]$ | 6 | **5** | 0.1133 | 4,431.29 | 5 / 5 (100%) | 0.37s |
 | **Step 3** | 1,998 | $[7, 9]$ | 8 | **7** | 0.0897 | 13,884.00 | 7 / 7 (100%) | 1.16s |
 
-### 5.2 Key Takeaways
+### Key Takeaways
 
-- **Strict Monotonic Growth**: Optimal cluster counts scale monotonically ($3 \to 5 \to 7$) without manual tuning, confirming that $k_1 \le k_2 \le k_3$.
-- **Zero Label Collisions**: Unique archetype names are maintained at all steps ($100\%$ uniqueness across all cluster configurations).
-- **Sub-Second Execution**: Complete ingestion, transformation, clustering, and profiling completes in under $1.2\text{s}$ for catalogs approaching 2,000 entries.
-
----
-
-## 6. Asset Pruning and Edge Optimization Benchmark
-
-To support client-side WebAssembly execution in standard web browsers without backend server infrastructure, the catalog packaging pipeline (`scripts/package_catalog.py`) optimizes large relational datasets into high-performance web assets:
-
-### 6.1 Storage Footprint and Compression Matrix
-
-| Asset Description | Source Format / Location | Raw Storage Size | Optimized Payload | Footprint Reduction | Production Constraint | Runtime Target |
-| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
-| **SQLite Master Catalog** | `data/anime_catalog.db` | ~38.40 MB | **3.20 MB** | **91.7%** | Budget: $< 4.00\text{ MB}$ | Local CLI and SQLite Web |
-| **Full Offline Corpus** | `data/anime-offline-database.jsonl` | 62.30 MB | **1.14 MB** | **98.2%** | Budget: $< 2.00\text{ MB}$ | In-Browser WebAssembly / CDN |
-| **Netlify Drop Archive** | `netlify-wasm-deploy.zip` | 26.50 MB | **13.13 MB** | **50.5%** | Budget: $< 20.00\text{ MB}$ | Instant Drag-and-Drop Deploy |
-| **WASM Single-File App** | `reports/index.html` | 1.85 MB | **187 KB** | **89.9%** | Budget: $< 500\text{ KB}$ | Zero-Install Client Browser |
-
-### 6.2 Pre-Packaging Pipeline Architecture
-
-The packaging pipeline enforces a strict 12-key schema contract:
-`id`, `title`, `seasonYear`, `averageScore`, `popularity`, `favourites`, `episodes`, `duration`, `genres`, `tags`, `origin_cohort`, `sub_origin`.
-
-Titles are cleaned to 120-character bounds with prioritized English-to-Romaji fallback. Continuous values are converted to compact single-precision formats, and tags are capped at the top 6 descriptors per title, ensuring that 40,654 records compress cleanly into $1.14\text{ MB}$.
+- **Smooth Scaling**: Cluster count grows smoothly with data volume ($3 \to 5 \to 7$) without manual tuning.
+- **Unique Naming**: 100% distinct archetype labels across all configurations.
+- **Fast Execution**: Full ingestion, transformation, clustering, and profiling completes in under 1.2 seconds for ~2,000 titles.
 
 ---
 
-## 7. Interactive Pedagogical Artifacts and WebAssembly Deployment
+## 6. Web Optimization
 
-### 7.1 Reactive Marimo DAG Notebook
+To run client-side in the browser without server infrastructure, the packaging script (`scripts/package_catalog.py`) optimizes datasets for quick web delivery:
 
-The project provides an interactive reactive notebook ([`notebooks/anime_notebook.py`](notebooks/anime_notebook.py) / `python main.py --notebook`). Unlike traditional linear Jupyter notebooks that suffer from hidden execution state and out-of-order execution bugs, Marimo models code execution as a Directed Acyclic Graph (DAG):
+### Compression Benchmarks
 
-- **Zero Global State**: Variable dependencies form deterministic DAG edges. Updating a hyperparameter slider automatically recalculates dependent cells downstream without requiring manual execution.
-- **Academic Cleanliness**: Fully compliant with PEP 723 metadata headers and strictly audited for zero Unicode emojis.
+| Asset | Source / Path | Raw Size | Optimized Size | Reduction | Target Environment |
+| :--- | :--- | :---: | :---: | :---: | :--- |
+| **SQLite Catalog** | `data/anime_catalog.db` | ~38.40 MB | **3.20 MB** | **91.7%** | Local CLI and SQLite Explorer |
+| **Compact JSON Catalog** | `data/anime-offline-database.jsonl` | 62.30 MB | **1.14 MB** | **98.2%** | WebAssembly Runtime / Browser |
+| **Netlify Drop Archive** | `netlify-wasm-deploy.zip` | 26.50 MB | **13.12 MB** | **50.5%** | Drag-and-Drop Netlify Deploy |
+| **WASM Single-File App** | `reports/index.html` | 1.85 MB | **185 KB** | **90.0%** | Static Client Browser |
 
-### 7.2 Altair Interval Brush Selection
+### Packaging Pipeline
 
-The notebook integrates Altair interactive graphics with bidirectional UI state:
-- **Interval Brush**: Users can click and drag an arbitrary 2D bounding box over the PCA projection manifold (`PC1` vs `PC2`).
-- **Master-Detail Reactive Inspector**: Isolating a coordinate subspace dynamically updates the downstream inspection table, recalculating real-time sample counts, mean ratings, and representative exemplars without full page reloads.
+The packaging pipeline cleans and standardizes 12 essential fields per record: `id`, `title`, `seasonYear`, `averageScore`, `popularity`, `favourites`, `episodes`, `duration`, `genres`, `tags`, `origin_cohort`, and `sub_origin`.
 
-### 7.3 Serverless WebAssembly and Pyodide Architecture
+Titles are capped at 120 characters, floats are formatted cleanly, and tags are limited to the top 6 descriptors, enabling 40,654 records to compress into a $1.14\text{ MB}$ `.json.gz` payload that decompresses in the browser in under 200ms.
 
-The interactive application compiles to a static, serverless WebAssembly runtime ([`reports/index.html`](reports/index.html)):
-- **Pyodide Runtime**: Executes CPython, NumPy, Pandas, Scikit-Learn, and Altair directly inside the browser's Web Worker.
-- **Worker-Derived Absolute URLs**: Solves the browser Web Worker `blob:` URL limitation by extracting the root document origin, enabling seamless fetch requests for `data/anime_catalog_compact.json.gz`.
+---
 
-### 7.4 Netlify Deployment and Local Preview Emulation
+## 7. Interactive Notebook and Web App
 
-The application is configured for deployment to Netlify Drop (`app.netlify.com/drop`):
-- **Deployment Archive**: Run `python scripts/package_netlify_drop.py` to create `netlify-wasm-deploy.zip`.
-- **Security Headers ([`reports/_headers`](reports/_headers) / [`netlify.toml`](netlify.toml))**:
-  - `Cross-Origin-Opener-Policy: same-origin`
-  - `Cross-Origin-Embedder-Policy: credentialless`
-  - MIME types: `.wasm` as `application/wasm`, `.whl` as `application/octet-stream`, `.gz` as `application/gzip`.
-- **Local Preview Server**: Emulates Netlify production hosting locally:
+### Marimo Reactive Notebook
+
+The project includes an interactive reactive notebook ([`notebooks/anime_notebook.py`](notebooks/anime_notebook.py) / `python main.py --notebook`). Unlike traditional notebooks with hidden state and cell-ordering issues, Marimo uses a Directed Acyclic Graph (DAG):
+
+- **Deterministic Execution**: Changing a slider automatically updates downstream cells without running cells out of order.
+- **Clean Structure**: Fully compliant with PEP 723 script metadata and free of Unicode emojis.
+
+### Interactive Exploration
+
+The notebook integrates Altair charts with interactive brush selection:
+- **Interval Brush**: Click and drag a 2D box across the PCA coordinate plot (`PC1` vs `PC2`).
+- **Real-Time Inspection**: Selected points automatically update the inspection table, recalculating averages and representative titles on the fly.
+
+### WebAssembly and Pyodide
+
+The application compiles to a static WebAssembly page ([`reports/index.html`](reports/index.html)):
+- **Pyodide Runtime**: Runs Python, NumPy, Pandas, Scikit-Learn, and Altair directly inside a browser Web Worker.
+- **Zero Backend**: Works entirely client-side without servers or active API keys.
+
+### Netlify Deployment
+
+The app is pre-configured for instant deployment to Netlify Drop:
+- **One-Command Build**: Run `python main.py --build-netlify` to clean, compile WASM, and package `netlify-wasm-deploy.zip`.
+- **Security Headers ([`reports/_headers`](reports/_headers))**: Sets `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: credentialless` for WebAssembly isolation.
+- **Local Preview Server**: Test the Netlify setup locally with full header support:
   ```bash
   python scripts/serve_netlify_preview.py --port 8888
   ```
 
 ---
 
-## 8. CLI Reference and Production Recipes
+## 8. CLI Reference
 
-### 8.1 Command-Line Interface Table
+### CLI Options
 
-| Flag | Argument Type | Default Value | Description |
+| Option | Type | Default | Description |
 | :--- | :---: | :---: | :--- |
-| `--samples` | `int` | `500` | Target number of anime records to retrieve and analyze |
-| `--k` | `int` | `5` | Fixed cluster count (set to `0` for automated silhouette selection) |
-| `--min-k` | `int` | `None` | Minimum candidate cluster count for evaluation |
-| `--max-k` | `int` | `None` | Maximum candidate cluster count for evaluation |
-| `--source` | `str` | `auto` | Ingestion source: `auto` (AniList with Kitsu fallback), `anilist`, or `kitsu` |
-| `--rate-delay` | `float` | `0.6` | Inter-request polite throttling delay (seconds) to prevent API bans |
-| `--db-path` | `path` | `data/anime_catalog.db` | Local SQLite database file path |
-| `--dbscan-eps` | `float` | `1.2` | DBSCAN neighborhood distance radius ($\varepsilon$) |
-| `--dbscan-min-samples` | `int` | `4` | DBSCAN minimum points per core density cluster |
-| `--force-fetch` | `flag` | `False` | Ignore local cache and force fresh network harvesting |
-| `--offline` | `flag` | `False` | Run purely offline using SQLite database or mock fallback |
-| `--no-incremental` | `flag` | `False` | Restart pagination from page 1 instead of resuming from cursor |
-| `--output-dir` | `path` | `reports` | Target directory for generated reports and visual figures |
-| `--adaptive-k` | `flag` | `False` | Dynamically scale candidate $[k_{\min}, k_{\max}]$ and optimal $k$ based on sample size $N$ |
-| `--run-scaling-steps` | `flag` | `False` | Run multi-step incremental database scaling benchmark |
-| `--step-samples` | `str` | `150,600,1998` | Comma-separated sample slices for incremental benchmark |
-| `--no-plots` | `flag` | `False` | Disable plot rendering (fast text-only mode) |
-| `--parallel-harvest` | `flag` | `False` | Execute parallel dual-source harvesting (AniList + Kitsu) |
-| `--deduplicate` | `flag` | `False` | Run relational and fuzzy de-duplication on database records |
-| `--ingest-offline-db` | `path` | `None` | Ingest Manami offline JSONL database into SQLite catalog |
-| `--use-offline-db` | `flag` | `False` | Prioritize local offline SQLite catalog without querying external APIs |
-| `--origin` | `str` | `all` | Filter by national cohort: `all`, `jp`, `non-jp`, or `compare` |
-| `--dpi` | `int` | `150` | Figure rasterization resolution (dots per inch) |
-| `--dashboard` | `choice` | `None` | Launch Marimo visual analytics dashboard (`run` or `edit`) |
-| `--notebook` | `choice` | `None` | Launch Marimo reactive pedagogical notebook (`run` or `edit`) |
-| `--port` | `int` | `2718` | Port number for Marimo server |
-| `--headless` | `flag` | `False` | Start Marimo server without automatically opening a browser window |
-| `--export-json` | `path` | `None` | Export database records to portable JSON or JSON.GZ file |
+| `--samples` | `int` | `500` | Target number of anime records to analyze |
+| `--k` | `int` | `5` | Fixed cluster count (set to `0` for automatic selection) |
+| `--min-k` | `int` | `None` | Minimum candidate cluster count |
+| `--max-k` | `int` | `None` | Maximum candidate cluster count |
+| `--source` | `str` | `auto` | Data source: `auto` (AniList with Kitsu fallback), `anilist`, or `kitsu` |
+| `--rate-delay` | `float` | `0.6` | Delay between API requests (seconds) to prevent throttling |
+| `--db-path` | `path` | `data/anime_catalog.db` | SQLite database path |
+| `--dbscan-eps` | `float` | `1.2` | DBSCAN neighborhood distance ($\varepsilon$) |
+| `--dbscan-min-samples` | `int` | `4` | DBSCAN minimum points per cluster |
+| `--force-fetch` | `flag` | `False` | Bypass cache and fetch fresh API data |
+| `--offline` | `flag` | `False` | Run offline using local database or mock fallback |
+| `--no-incremental` | `flag` | `False` | Reset pagination to page 1 |
+| `--output-dir` | `path` | `reports` | Output directory for reports and figures |
+| `--adaptive-k` | `flag` | `False` | Automatically choose $k$ based on sample size $N$ |
+| `--run-scaling-steps` | `flag` | `False` | Run 3-step incremental scaling benchmark |
+| `--step-samples` | `str` | `150,600,1998` | Sample slices for scaling benchmark |
+| `--no-plots` | `flag` | `False` | Disable image generation (faster text-only run) |
+| `--parallel-harvest` | `flag` | `False` | Run multi-worker parallel harvesting |
+| `--deduplicate` | `flag` | `False` | Deduplicate records across external IDs and titles |
+| `--ingest-offline-db` | `path` | `None` | Import Manami offline JSONL file into SQLite |
+| `--use-offline-db` | `flag` | `False` | Use local SQLite catalog without querying APIs |
+| `--origin` | `str` | `all` | Filter cohort: `all`, `jp`, `non-jp`, or `compare` |
+| `--dpi` | `int` | `150` | Figure resolution (dots per inch) |
+| `--dashboard` | `choice` | `None` | Open Marimo analytics dashboard (`run` or `edit`) |
+| `--notebook` | `choice` | `None` | Open Marimo reactive notebook (`run` or `edit`) |
+| `--build-netlify` | `path` | `netlify-wasm-deploy.zip` | Clean build and package deploy-ready Netlify ZIP |
+| `--port` | `int` | `2718` | Port for Marimo server |
+| `--headless` | `flag` | `False` | Start Marimo server without opening browser |
+| `--export-json` | `path` | `None` | Export database records to JSON file |
 
-### 8.2 Production Copy-Paste Recipes
+### Quick Recipes
 
 ```bash
-# 1. Default pipeline run (auto source failover, 500 samples, 5 clusters)
+# 1. Standard pipeline run (AniList/Kitsu auto-failover, 500 samples, 5 clusters)
 python main.py
 
-# 2. Run completely offline using local SQLite database
+# 2. Run offline using local SQLite database
 python main.py --offline
 
-# 3. Execute 3-step incremental database scaling benchmark
-python main.py --run-scaling-steps
-
-# 4. Adaptive clustering (auto-scales k based on catalog size N)
+# 3. Adaptive clustering (auto-scales k based on sample size)
 python main.py --offline --adaptive-k
 
-# 5. Dual-cohort comparative run (Japanese Domestic vs Overseas Donghua/Aeni)
+# 4. Regional comparison (Japanese anime vs. Chinese Donghua & Korean Aeni)
 python main.py --offline --origin compare
 
-# 6. Bulk ingest Manami offline JSONL database (40,654 records) with deduplication
+# 5. Incremental scaling benchmark (tests 150, 600, and 1,998 samples)
+python main.py --run-scaling-steps
+
+# 6. Bulk import Manami offline dataset (40,654 records)
 python main.py --ingest-offline-db data/anime-offline-database.jsonl --deduplicate
 
-# 7. Launch interactive Marimo reactive DAG notebook
-python main.py --notebook run --port 2718
+# 7. Launch interactive Marimo notebook
+python main.py --notebook run
 
-# 8. Launch Marimo visual analytics dashboard in edit mode
-python main.py --dashboard edit --port 2718
+# 8. Clean build and package Netlify Drop ZIP
+python main.py --build-netlify
 
-# 9. Package compact WebAssembly and offline deployment assets
-python scripts/package_catalog.py
-
-# 10. Generate Netlify Drop deployment ZIP archive
-python scripts/package_netlify_drop.py
-
-# 11. Run local Netlify preview server with COOP/COEP isolation headers
+# 9. Test Netlify preview locally with security headers
 python scripts/serve_netlify_preview.py --port 8888
 ```
 
 ---
 
-## 9. Comprehensive Automated Test Suite
+## 9. Testing
 
-The test suite covers unit, integration, invariant, and deployment tests across 14 modules with a 100% pass rate:
+The test suite covers unit, integration, invariant, and deployment tests across 14 modules with 100% passing tests:
 
 ```bash
 uv run pytest -v
 ```
 
-### 9.1 Test Module Breakdown
+### Test Modules
 
-| Module | Test File | Test Count | Key Invariants Verified |
+| Module | Test File | Tests | Key Areas Verified |
 | :--- | :--- | :---: | :--- |
-| **Incremental Scaling** | `tests/test_scaling.py` | 5 | Monotonicity of $k(N)$, boundary limits, collision-free archetypes, variable-$k$ profiling, 3-step DB growth |
-| **Origin Classifier** | `tests/test_origin_classifier.py` | 5 | Level 1 country codes, Level 2 tag patterns, Level 3 studio gazetteers, Level 4 Unicode regex, Level 5 baseline default |
-| **Origin Pipeline** | `tests/test_origin_pipeline.py` | 4 | Dual-cohort comparative pipeline, comparative figure generation, markdown report synthesis |
-| **Reactive Notebook** | `tests/test_notebook.py` | 8 | Marimo static check, headless `app.run()`, CLI `--notebook` flag, WASM HTML export, real file integrity, zero emojis / PEP 723, lazy catalog loading |
-| **Visual Dashboard** | `tests/test_dashboard.py` | 5 | Marimo static check, headless app execution, CLI `--dashboard` flags, static HTML export, real file integrity |
-| **Netlify Deployment** | `tests/test_netlify_config.py` | 5 | `netlify.toml` structure, COOP/COEP isolation headers, MIME types, Netlify Drop ZIP generator archive |
-| **Catalog Packaging** | `tests/test_package_catalog.py` | 7 | Title sanitization, score normalization (0-100), tag/genre capping, sub-origin taxonomy mapping, 12-key schema contract, SQLite packaging, JSONL packaging |
-| **Offline Indexer** | `tests/test_offline_indexer.py` | 3 | Mini-catalog JSONL indexing, Tier 2 relational boundary guard against false merges, Tier 1 DSU cross-source deduplication |
-| **Database Engine** | `tests/test_database.py` | 3 | SQLite initialization, upsert idempotency, bidirectional JSON import/export, legacy ID consolidation |
-| **Data Fetcher** | `tests/test_data_fetcher.py` | 3 | Mock dataset schema integrity, offline fallback mode, persistent disk caching |
-| **Feature Preprocessor** | `tests/test_preprocessor.py` | 3 | PreprocessedData dataclass shape, recency and favorites ratio calculations, missing value imputation |
-| **Clustering Algorithms** | `tests/test_clustering.py` | 2 | K-Means clustering, silhouette/elbow dictionaries, DBSCAN density fitting |
-| **Visualizer Engine** | `tests/test_visualizer.py` | 3 | Headless Matplotlib/Seaborn figure generation (5 figures), Markdown summary table formatting, dynamic palette expansion |
+| **Incremental Scaling** | `tests/test_scaling.py` | 5 | Monotonicity of $k(N)$, boundary limits, collision-free naming, 3-step DB scaling |
+| **Origin Classifier** | `tests/test_origin_classifier.py` | 5 | Country codes, tag rules, studio registry, Unicode script detection, fallback default |
+| **Origin Pipeline** | `tests/test_origin_pipeline.py` | 4 | Comparative pipeline, dual-cohort visualizer, markdown report generation |
+| **Reactive Notebook** | `tests/test_notebook.py` | 8 | Marimo static check, headless run, `--notebook` CLI, WASM export, zero emojis, lazy loader |
+| **Visual Dashboard** | `tests/test_dashboard.py` | 5 | Marimo static check, headless run, `--dashboard` CLI, HTML export, file integrity |
+| **Netlify Deployment** | `tests/test_netlify_config.py` | 8 | Headers, redirects, MIME types, cache cleaning, ZIP packaging, archive audit, CLI flag |
+| **Catalog Packaging** | `tests/test_package_catalog.py` | 7 | Title cleaning, score normalization, tag capping, schema contract, SQLite & JSONL outputs |
+| **Offline Indexer** | `tests/test_offline_indexer.py` | 3 | JSONL indexing, relational sequel/prequel guard, DSU cross-source deduplication |
+| **Database Engine** | `tests/test_database.py` | 3 | SQLite initialization, upsert idempotency, JSON import/export, legacy ID consolidation |
+| **Data Fetcher** | `tests/test_data_fetcher.py` | 3 | Mock schema integrity, offline fallback mode, disk caching |
+| **Feature Preprocessor** | `tests/test_preprocessor.py` | 3 | Data shape, recency and devotion ratios, missing value imputation |
+| **Clustering Algorithms** | `tests/test_clustering.py` | 2 | K-Means clustering, silhouette and elbow metrics, DBSCAN density fitting |
+| **Visualizer Engine** | `tests/test_visualizer.py` | 3 | Headless plot generation, markdown summary formatting, dynamic color palettes |
 | **Pipeline Integration** | `tests/test_pipeline.py` | 1 | End-to-end execution, report generation, artifact persistence |
-| **Scaling Harness** | `tests/test_benchmark.py` | 2 | Sub-linear power-law formula bounds, isolated temporary harness execution |
-| **Parallel Harvester** | `tests/test_harvester.py` | 2 | Multi-worker initialization, rate-delay safety clamp ($\ge 3.0\text{s}$), graceful stop event handling |
-| **Total Test Coverage** | **14 Modules** | **61 Tests** | **100% Passing Rate Across Entire Suite** |
+| **Scaling Harness** | `tests/test_benchmark.py` | 2 | Power-law formula bounds, isolated temporary harness execution |
+| **Parallel Harvester** | `tests/test_harvester.py` | 2 | Worker initialization, rate-delay safety clamps, graceful shutdown |
+| **Total Test Coverage** | **14 Modules** | **64 Tests** | **100% Passing Across Entire Suite** |
 
 ---
 
-## 10. Repository File Structure
+## 10. Project Structure
 
 ```
 ai-powered-data-insights/
 ├── data/
-│   ├── anime_catalog.db                 # Primary SQLite incremental database (40,654 records)
-│   ├── anime_catalog_compact.db         # High-performance pruned SQLite DB (3.20 MB)
-│   ├── anime_catalog_compact.json.gz    # Gzip compressed catalog for WASM runtime (1.14 MB)
-│   ├── anime-offline-database.jsonl     # Manami offline catalog dump (46.70 MB)
-│   └── raw_anime_data.json              # Portable JSON export cache
+│   ├── anime_catalog.db                 # Primary SQLite database (40,654 records)
+│   ├── anime_catalog_compact.db         # Pruned SQLite DB (3.20 MB)
+│   ├── anime_catalog_compact.json.gz    # Compressed JSON for WebAssembly (1.14 MB)
+│   ├── anime-offline-database.jsonl     # Manami offline catalog (46.70 MB)
+│   └── raw_anime_data.json              # Portable JSON cache
 ├── notebooks/
-│   ├── anime_notebook.py                # Marimo pedagogical reactive DAG notebook
-│   └── anime_dashboard.py               # Marimo interactive visual analytics dashboard
+│   ├── anime_notebook.py                # Marimo reactive pedagogical notebook
+│   └── anime_dashboard.py               # Marimo interactive visual dashboard
 ├── reports/
 │   ├── figures/                         # High-resolution visual artifacts (300 DPI)
-│   │   ├── cluster_heatmap.png          # Normalized centroid feature heatmap
-│   │   ├── elbow_silhouette.png         # Elbow inertia and silhouette diagnostic curves
-│   │   ├── pca_2d.png                   # 2D PCA projection with exemplar title annotations
-│   │   ├── pca_3d.png                   # 3D PCA projection
-│   │   └── tsne_2d.png                  # 2D t-SNE non-linear manifold projection
-│   ├── figures_compare/                 # Cross-market comparative diagnostic figures
-│   │   ├── format_comparison.png        # Episode format and runtime distributions
-│   │   ├── genre_divergence.png         # Genre affinity cross-market contrast
-│   │   ├── origin_distribution.png      # Regional cohort proportions
-│   │   └── score_popularity_comparison.png # Acclaim vs popularity bivariate scatter
-│   ├── data/                            # Static assets published for web runtime
-│   │   ├── anime_catalog_compact.db     # Web-published compact SQLite DB
-│   │   └── anime_catalog_compact.json.gz# Web-published compact Gzip JSON
-│   ├── _headers                         # Netlify security and Cross-Origin Isolation headers
-│   ├── _redirects                       # Netlify clean URL rewrites (/notebook, /pyodide, /dashboard)
+│   ├── figures_compare/                 # Cross-market comparative charts
+│   ├── data/                            # Web-published compact data assets
+│   ├── _headers                         # Netlify security and COOP/COEP headers
+│   ├── _redirects                       # Netlify URL rewrites
 │   ├── anime_dashboard.html             # Standalone static HTML dashboard
-│   ├── anime_notebook.pyodide.html      # Standalone single-file Pyodide application
-│   ├── anime_notebook.wasm.html         # Marimo WASM client application
-│   ├── cluster_analysis_report.md       # Full quantitative empirical findings report
-│   ├── index.html                       # Production Netlify entry point (Marimo WASM)
-│   └── scaling_benchmark_report.md      # 3-step incremental scaling benchmark report
+│   ├── anime_notebook.pyodide.html      # Standalone single-file Pyodide app
+│   ├── anime_notebook.wasm.html         # Marimo WASM client app
+│   ├── cluster_analysis_report.md       # Quantitative clustering report
+│   ├── index.html                       # Netlify production entry point (Marimo WASM)
+│   └── scaling_benchmark_report.md      # 3-step scaling benchmark report
 ├── scripts/
-│   ├── demonstrate_scaling.py           # CLI runner for incremental scaling benchmark
+│   ├── demonstrate_scaling.py           # CLI runner for scaling benchmark
 │   ├── package_catalog.py               # Pre-packaging pipeline and catalog pruner
 │   ├── package_netlify_drop.py          # Netlify Drop deployment archive generator
-│   └── serve_netlify_preview.py         # Local preview server with COOP/COEP header emulation
+│   └── serve_netlify_preview.py         # Local preview server with COOP/COEP headers
 ├── src/
-│   ├── __init__.py
-│   ├── benchmark.py                     # Incremental scaling benchmark harness
+│   ├── benchmark.py                     # Scaling benchmark harness
 │   ├── clustering.py                    # Adaptive K-Means, DBSCAN, and archetype profiler
-│   ├── comparative_visualizer.py        # Cross-market comparative plotting engine
-│   ├── database.py                      # SQLite database, DSU deduplication, and export sync
-│   ├── data_fetcher.py                  # Multi-source fetcher (AniList, Kitsu, and mock)
-│   ├── harvester.py                     # High-throughput parallel API harvester
-│   ├── mock_data.py                     # Curated fallback benchmark dataset (55 entries)
+│   ├── comparative_visualizer.py        # Cross-market comparative visualizer
+│   ├── database.py                      # SQLite storage and DSU deduplication
+│   ├── data_fetcher.py                  # Multi-source fetcher (AniList, Kitsu, mock)
+│   ├── harvester.py                     # Parallel multi-worker harvester
+│   ├── mock_data.py                     # Fallback benchmark dataset (55 entries)
 │   ├── offline_indexer.py               # Manami JSONL indexer and relational crosswalk
-│   ├── origin_classifier.py             # Deterministic 5-level origin cascade classifier
+│   ├── origin_classifier.py             # 5-level origin cascade classifier
 │   ├── pipeline.py                      # Pipeline orchestration controller
-│   ├── preprocessor.py                  # StandardScaler, Log transform, and TF-IDF
+│   ├── preprocessor.py                  # Feature scaling, log transform, and TF-IDF
 │   ├── report_builder.py                # Markdown analytical report generator
-│   ├── visualization_base.py            # Base visualizer with CJK font cascade
-│   └── visualizer.py                    # Headless Matplotlib and Seaborn plotting engine
-├── tests/
-│   ├── conftest.py                      # Shared pytest fixtures
-│   ├── test_benchmark.py                # Scaling harness unit tests
-│   ├── test_clustering.py               # Clustering algorithm tests
-│   ├── test_dashboard.py                # Marimo dashboard tests
-│   ├── test_database.py                 # SQLite database and deduplication tests
-│   ├── test_data_fetcher.py             # Fetcher and caching tests
-│   ├── test_harvester.py                # Harvester worker tests
-│   ├── test_netlify_config.py           # Netlify headers, redirects, and packaging tests
-│   ├── test_notebook.py                 # Marimo reactive notebook tests
-│   ├── test_offline_indexer.py          # Offline indexer and relational guard tests
-│   ├── test_origin_classifier.py        # 5-level origin cascade tests
-│   ├── test_origin_pipeline.py          # Dual-cohort comparative pipeline tests
-│   ├── test_package_catalog.py          # Catalog pre-packaging pipeline tests
-│   ├── test_pipeline.py                 # Pipeline integration tests
-│   ├── test_preprocessor.py             # Feature engineering tests
-│   ├── test_scaling.py                  # Adaptive cluster scaling tests
-│   └── test_visualizer.py               # Plot rendering and palette tests
-├── netlify-wasm-deploy.zip              # Deploy-ready Netlify Drop archive (13.13 MB)
-├── netlify.toml                         # Netlify build and routing configuration
-├── pyproject.toml                       # Python package configuration and dependencies
-├── requirements.txt                     # Pinned dependencies lockfile
+│   ├── visualization_base.py            # Base visualizer with font cascade
+│   └── visualizer.py                    # Plotting engine (Matplotlib & Seaborn)
+├── tests/                               # 14 test modules (64 automated tests)
+├── netlify-wasm-deploy.zip              # Deploy-ready Netlify Drop archive (13.12 MB)
+├── netlify.toml                         # Netlify deployment configuration
+├── pyproject.toml                       # Python package configuration
+├── requirements.txt                     # Dependencies lockfile
 └── README.md
 ```
 
