@@ -12,6 +12,7 @@ Verifies:
 from __future__ import annotations
 
 import os
+import sys
 import tomllib
 from pathlib import Path
 
@@ -99,7 +100,7 @@ def test_build_netlify_zip_archive(tmp_path: Path):
     mock_reports = tmp_path / "mock_reports"
     mock_reports.mkdir()
     (mock_reports / "index.html").write_text("<html></html>", encoding="utf-8")
-    (mock_reports / "_headers").write_text("/*\n  COOP: same-origin", encoding="utf-8")
+    (mock_reports / "_headers").write_text("/*\n  Cross-Origin-Opener-Policy: same-origin\n  Cross-Origin-Embedder-Policy: credentialless", encoding="utf-8")
     (mock_reports / "_redirects").write_text("/from /to 200", encoding="utf-8")
 
     sub_data = mock_reports / "data"
@@ -122,4 +123,67 @@ def test_build_netlify_zip_archive(tmp_path: Path):
         assert "_redirects" in names
         assert "data/catalog.json.gz" in names
         assert not any("__marimo__" in n for n in names)
+
+
+def test_clean_reports_artifacts(tmp_path: Path):
+    """Verify that clean_reports_artifacts purges stale caches, old zips, and CLAUDE.md."""
+    from scripts.package_netlify_drop import clean_reports_artifacts
+
+    mock_reports = tmp_path / "mock_reports"
+    mock_reports.mkdir()
+    (mock_reports / "assets").mkdir()
+    (mock_reports / "assets" / "bundle.js").write_text("console.log(1)")
+    (mock_reports / "__marimo__").mkdir()
+    (mock_reports / "CLAUDE.md").write_text("old notes")
+    (mock_reports / ".DS_Store").write_bytes(b"\x00")
+    (mock_reports / "index.html").write_text("<html></html>")
+
+    mock_zip = tmp_path / "old-deploy.zip"
+    mock_zip.write_bytes(b"PK\x05\x06" + b"\x00" * 18)
+
+    cleaned = clean_reports_artifacts(mock_reports, mock_zip)
+    assert len(cleaned) >= 4
+    assert not (mock_reports / "assets").exists()
+    assert not (mock_reports / "__marimo__").exists()
+    assert not (mock_reports / "CLAUDE.md").exists()
+    assert not mock_zip.exists()
+    assert (mock_reports / "index.html").exists()
+
+
+def test_audit_netlify_zip_validation(tmp_path: Path):
+    """Verify audit_netlify_zip validates root files, headers, and gzip magic bytes."""
+    import zipfile
+    from scripts.package_netlify_drop import audit_netlify_zip
+
+    valid_zip = tmp_path / "valid.zip"
+    with zipfile.ZipFile(valid_zip, "w") as zf:
+        zf.writestr("index.html", "<html></html>")
+        zf.writestr(
+            "_headers",
+            "/*\n  Cross-Origin-Opener-Policy: same-origin\n  Cross-Origin-Embedder-Policy: credentialless",
+        )
+        zf.writestr("_redirects", "/from /to 200")
+        zf.writestr("data/anime_catalog_compact.json.gz", b"\x1f\x8b\x08\x00\x00\x00\x00\x00" + b"x" * 120)
+
+    audit = audit_netlify_zip(valid_zip)
+    assert audit["has_index"] is True
+    assert audit["has_headers"] is True
+    assert audit["has_redirects"] is True
+    assert audit["has_catalog"] is True
+    assert audit["file_count"] == 4
+
+
+def test_main_cli_build_netlify_flag():
+    """Verify that main.py exposes the --build-netlify argument."""
+    import subprocess
+    repo_root = Path(__file__).resolve().parent.parent
+    res = subprocess.run(
+        [sys.executable, str(repo_root / "main.py"), "--help"],
+        capture_output=True,
+        text=True,
+    )
+    assert res.returncode == 0
+    assert "--build-netlify" in res.stdout
+    assert "Netlify Drop" in res.stdout
+
 

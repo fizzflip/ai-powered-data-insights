@@ -203,6 +203,14 @@ def parse_arguments() -> argparse.Namespace:
         metavar="JSON_PATH",
         help="Export all current SQLite anime records to portable JSON file (supports .json and .json.gz)",
     )
+    parser.add_argument(
+        "--build-netlify",
+        nargs="?",
+        const="netlify-wasm-deploy.zip",
+        default=None,
+        metavar="ZIP_PATH",
+        help="Clean build the latest changes, recompile single-file WASM notebook, and export to a Netlify Drop deployment ZIP",
+    )
 
     return parser.parse_args()
 
@@ -210,6 +218,12 @@ def parse_arguments() -> argparse.Namespace:
 def main() -> int:
     """Execute main CLI workflow."""
     args = parse_arguments()
+
+    if args.build_netlify:
+        from scripts.package_netlify_drop import clean_build_and_export
+
+        clean_build_and_export(output_zip=args.build_netlify)
+        return 0
 
     if args.notebook:
         import subprocess
