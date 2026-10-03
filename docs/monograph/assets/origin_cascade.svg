@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 520" width="880" height="520">
+  <defs>
+    <linearGradient id="bgTree" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1A113E"/>
+      <stop offset="100%" stop-color="#120A2B"/>
+    </linearGradient>
+    <marker id="cascadeArrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#D5B9F3"/>
+    </marker>
+    <marker id="matchArrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#4DF0D2"/>
+    </marker>
+  </defs>
+
+  <!-- Background Ground -->
+  <rect width="880" height="520" fill="url(#bgTree)"/>
+
+  <!-- Title & Subtitle -->
+  <g transform="translate(40, 36)">
+    <text x="0" y="0" font-family="'Space Mono', monospace" font-size="9" font-weight="700" fill="#4DF0D2" letter-spacing="0.14em">DETERMINISTIC ORIGIN RESOLUTION CASCADE</text>
+    <text x="0" y="24" font-family="'Space Mono', monospace" font-size="16" font-weight="700" fill="#FAC4A7">5-Level Non-Hallucinatory Origin Classifier</text>
+    <text x="0" y="38" font-family="'Space Mono', monospace" font-size="9" fill="#D5B9F3">Rigorous sequential evaluation from ISO country codes to Unicode script heuristics</text>
+  </g>
+
+  <!-- LEVEL 1: Country Code -->
+  <g transform="translate(40, 100)">
+    <rect width="460" height="60" rx="8" fill="#1C1445" stroke="#6E58A3" stroke-width="1.5"/>
+    <rect x="14" y="12" width="68" height="18" rx="4" fill="#6E58A3"/>
+    <text x="20" y="25" font-family="'Space Mono', monospace" font-size="8.5" font-weight="700" fill="#FFFFFF">LEVEL 01</text>
+    <text x="92" y="25" font-family="'Space Mono', monospace" font-size="10.5" font-weight="700" fill="#FAC4A7">EXPLICIT COUNTRY CODE (ISO 3166)</text>
+    <text x="14" y="46" font-family="'Space Mono', monospace" font-size="8.5" fill="#D5B9F3">Condition: country_of_origin in ['JP', 'CN', 'KR', 'US']</text>
+    
+    <!-- Match Exit -->
+    <line x1="460" y1="30" x2="570" y2="30" stroke="#4DF0D2" stroke-width="1.8" marker-end="url(#matchArrow)"/>
+    <rect x="580" y="8" width="240" height="44" rx="8" fill="#140C37" stroke="#4DF0D2" stroke-width="1.2"/>
+    <text x="592" y="26" font-family="'Space Mono', monospace" font-size="9" font-weight="700" fill="#4DF0D2">MATCH: Direct Assignment</text>
+    <text x="592" y="42" font-family="'Space Mono', monospace" font-size="8" fill="#FAC4A7">Coverage: 92.4% (13,654 titles)</text>
+
+    <!-- Fallthrough Arrow -->
+    <line x1="270" y1="60" x2="270" y2="80" stroke="#D5B9F3" stroke-width="1.5" marker-end="url(#cascadeArrow)"/>
+    <text x="280" y="74" font-family="'Space Mono', monospace" font-size="7.5" fill="#CFA7AA">MISSED / NULL</text>
+  </g>
+
+  <!-- LEVEL 2: Taxonomic Tags -->
+  <g transform="translate(40, 180)">
+    <rect width="460" height="60" rx="8" fill="#1C1445" stroke="#251C58" stroke-width="1.5"/>
+    <rect x="14" y="12" width="68" height="18" rx="4" fill="#251C58"/>
+    <text x="20" y="25" font-family="'Space Mono', monospace" font-size="8.5" font-weight="700" fill="#FCE277">LEVEL 02</text>
+    <text x="92" y="25" font-family="'Space Mono', monospace" font-size="10.5" font-weight="700" fill="#FAC4A7">TAXONOMIC MEDIA TAGS</text>
+    <text x="14" y="46" font-family="'Space Mono', monospace" font-size="8.5" fill="#D5B9F3">Condition: tags in ['Donghua', 'Aenime', 'Korean Animation']</text>
+
+    <line x1="460" y1="30" x2="570" y2="30" stroke="#4DF0D2" stroke-width="1.8" marker-end="url(#matchArrow)"/>
+    <rect x="580" y="8" width="240" height="44" rx="8" fill="#140C37" stroke="#6E58A3" stroke-width="1.2"/>
+    <text x="592" y="26" font-family="'Space Mono', monospace" font-size="9" font-weight="700" fill="#D5B9F3">MATCH: Tag Heuristic Resolution</text>
+    <text x="592" y="42" font-family="'Space Mono', monospace" font-size="8" fill="#FAC4A7">Coverage: 4.8% (710 titles)</text>
+
+    <line x1="270" y1="60" x2="270" y2="80" stroke="#D5B9F3" stroke-width="1.5" marker-end="url(#cascadeArrow)"/>
+    <text x="280" y="74" font-family="'Space Mono', monospace" font-size="7.5" fill="#CFA7AA">MISSED</text>
+  </g>
+
+  <!-- LEVEL 3: Studio Gazetteer -->
+  <g transform="translate(40, 260)">
+    <rect width="460" height="60" rx="8" fill="#1C1445" stroke="#251C58" stroke-width="1.5"/>
+    <rect x="14" y="12" width="68" height="18" rx="4" fill="#251C58"/>
+    <text x="20" y="25" font-family="'Space Mono', monospace" font-size="8.5" font-weight="700" fill="#FAC4A7">LEVEL 03</text>
+    <text x="92" y="25" font-family="'Space Mono', monospace" font-size="10.5" font-weight="700" fill="#FAC4A7">STUDIO GAZETTEER DICTIONARY</text>
+    <text x="14" y="46" font-family="'Space Mono', monospace" font-size="8.5" fill="#D5B9F3">Condition: studio_id in 340+ Chinese / Korean Production Units</text>
+
+    <line x1="460" y1="30" x2="570" y2="30" stroke="#4DF0D2" stroke-width="1.8" marker-end="url(#matchArrow)"/>
+    <rect x="580" y="8" width="240" height="44" rx="8" fill="#140C37" stroke="#FAC4A7" stroke-width="1.2"/>
+    <text x="592" y="26" font-family="'Space Mono', monospace" font-size="9" font-weight="700" fill="#FAC4A7">MATCH: Gazetteer Lookup</text>
+    <text x="592" y="42" font-family="'Space Mono', monospace" font-size="8" fill="#D5B9F3">Coverage: 1.6% (236 titles)</text>
+
+    <line x1="270" y1="60" x2="270" y2="80" stroke="#D5B9F3" stroke-width="1.5" marker-end="url(#cascadeArrow)"/>
+    <text x="280" y="74" font-family="'Space Mono', monospace" font-size="7.5" fill="#CFA7AA">MISSED</text>
+  </g>
+
+  <!-- LEVEL 4: Unicode Script Regex -->
+  <g transform="translate(40, 340)">
+    <rect width="460" height="60" rx="8" fill="#1C1445" stroke="#251C58" stroke-width="1.5"/>
+    <rect x="14" y="12" width="68" height="18" rx="4" fill="#251C58"/>
+    <text x="20" y="25" font-family="'Space Mono', monospace" font-size="8.5" font-weight="700" fill="#FCE277">LEVEL 04</text>
+    <text x="92" y="25" font-family="'Space Mono', monospace" font-size="10.5" font-weight="700" fill="#FAC4A7">UNICODE SCRIPT REGEX PROFILING</text>
+    <text x="14" y="46" font-family="'Space Mono', monospace" font-size="8.5" fill="#D5B9F3">Condition: \p{Han} (no Kana) = CN | \p{Hangul} = KR</text>
+
+    <line x1="460" y1="30" x2="570" y2="30" stroke="#4DF0D2" stroke-width="1.8" marker-end="url(#matchArrow)"/>
+    <rect x="580" y="8" width="240" height="44" rx="8" fill="#140C37" stroke="#FCE277" stroke-width="1.2"/>
+    <text x="592" y="26" font-family="'Space Mono', monospace" font-size="9" font-weight="700" fill="#FCE277">MATCH: Script Classification</text>
+    <text x="592" y="42" font-family="'Space Mono', monospace" font-size="8" fill="#FAC4A7">Coverage: 0.9% (133 titles)</text>
+
+    <line x1="270" y1="60" x2="270" y2="80" stroke="#D5B9F3" stroke-width="1.5" marker-end="url(#cascadeArrow)"/>
+    <text x="280" y="74" font-family="'Space Mono', monospace" font-size="7.5" fill="#CFA7AA">NO MATCH</text>
+  </g>
+
+  <!-- LEVEL 5: Canonical Baseline -->
+  <g transform="translate(40, 420)">
+    <rect width="460" height="60" rx="8" fill="#1C1445" stroke="#CFA7AA" stroke-width="1.5"/>
+    <rect x="14" y="12" width="68" height="18" rx="4" fill="#251C58"/>
+    <text x="20" y="25" font-family="'Space Mono', monospace" font-size="8.5" font-weight="700" fill="#CFA7AA">LEVEL 05</text>
+    <text x="92" y="25" font-family="'Space Mono', monospace" font-size="10.5" font-weight="700" fill="#FAC4A7">DEFAULT CANONICAL BASELINE</text>
+    <text x="14" y="46" font-family="'Space Mono', monospace" font-size="8.5" fill="#D5B9F3">Fallback: Assign JP Classic + append audit flag</text>
+
+    <line x1="460" y1="30" x2="570" y2="30" stroke="#CFA7AA" stroke-width="1.8" marker-end="url(#matchArrow)"/>
+    <rect x="580" y="8" width="240" height="44" rx="8" fill="#140C37" stroke="#CFA7AA" stroke-width="1.2"/>
+    <text x="592" y="26" font-family="'Space Mono', monospace" font-size="9" font-weight="700" fill="#CFA7AA">FALLBACK: Baseline JP Flag</text>
+    <text x="592" y="42" font-family="'Space Mono', monospace" font-size="8" fill="#D5B9F3">Residual: 0.3% (44 titles flagged)</text>
+  </g>
+</svg>

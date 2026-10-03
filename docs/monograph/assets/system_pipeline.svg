@@ -1,0 +1,151 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 480" width="960" height="480">
+  <defs>
+    <linearGradient id="pipeBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#190F3D"/>
+      <stop offset="100%" stop-color="#100829"/>
+    </linearGradient>
+    <linearGradient id="cardBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#21174E"/>
+      <stop offset="100%" stop-color="#160E3A"/>
+    </linearGradient>
+    <filter id="boxGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#050210" flood-opacity="0.7"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#4DF0D2"/>
+    </marker>
+  </defs>
+
+  <!-- Deep Cosmic Abyss Ground -->
+  <rect width="960" height="480" fill="url(#pipeBg)"/>
+  
+  <!-- Subtle Grid Lines -->
+  <g stroke="#251C58" stroke-width="0.8" opacity="0.4">
+    <line x1="0" y1="80" x2="960" y2="80"/>
+    <line x1="0" y1="200" x2="960" y2="200"/>
+    <line x1="0" y1="320" x2="960" y2="320"/>
+    <line x1="0" y1="420" x2="960" y2="420"/>
+    <line x1="160" y1="0" x2="160" y2="480"/>
+    <line x1="360" y1="0" x2="360" y2="480"/>
+    <line x1="560" y1="0" x2="560" y2="480"/>
+    <line x1="760" y1="0" x2="760" y2="480"/>
+  </g>
+
+  <!-- Header Section -->
+  <g transform="translate(48, 42)">
+    <text x="0" y="0" font-family="'Space Mono', monospace" font-size="9" font-weight="700" fill="#4DF0D2" letter-spacing="0.16em">COSMIC LOFI APOTHECARY // DATA INTELLIGENCE PIPELINE</text>
+    <text x="0" y="24" font-family="'Space Mono', monospace" font-size="16" font-weight="700" fill="#FAC4A7">End-to-End Latent Space Architecture</text>
+    <text x="0" y="38" font-family="'Space Mono', monospace" font-size="9.5" fill="#D5B9F3">From Unstructured Raw Catalog to Reactive WebAssembly Latent Topology</text>
+  </g>
+
+  <!-- Stage 1: Ingestion -->
+  <g transform="translate(36, 120)" filter="url(#boxGlow)">
+    <rect width="160" height="260" rx="10" fill="url(#cardBg)" stroke="#6E58A3" stroke-width="1.5"/>
+    <rect x="12" y="14" width="46" height="18" rx="4" fill="#6E58A3"/>
+    <text x="18" y="27" font-family="'Space Mono', monospace" font-size="8.5" font-weight="700" fill="#FFFFFF">01</text>
+    <text x="12" y="52" font-family="'Space Mono', monospace" font-size="11" font-weight="700" fill="#FAC4A7">INGESTION</text>
+    <text x="12" y="68" font-family="'Space Mono', monospace" font-size="8" fill="#D5B9F3">Raw Harvester</text>
+    <line x1="12" y1="80" x2="148" y2="80" stroke="#251C58" stroke-width="1"/>
+    
+    <text x="12" y="104" font-family="'Space Mono', monospace" font-size="8" fill="#FFFFFF">• MyAnimeList API</text>
+    <text x="12" y="122" font-family="'Space Mono', monospace" font-size="8" fill="#FFFFFF">• AniList GraphQL</text>
+    <text x="12" y="140" font-family="'Space Mono', monospace" font-size="8" fill="#FFFFFF">• 14,777 Records</text>
+    <text x="12" y="158" font-family="'Space Mono', monospace" font-size="8" fill="#FFFFFF">• Raw JSONL dumps</text>
+    
+    <rect x="12" y="218" width="136" height="28" rx="4" fill="#140C37" stroke="#251C58" stroke-width="1"/>
+    <text x="18" y="235" font-family="'Space Mono', monospace" font-size="7.5" fill="#4DF0D2">RAW PAYLOAD: 28MB</text>
+  </g>
+
+  <!-- Flow Connector 1 -> 2 -->
+  <line x1="200" y1="250" x2="222" y2="250" stroke="#4DF0D2" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Stage 2: Storage & Dedup -->
+  <g transform="translate(224, 120)" filter="url(#boxGlow)">
+    <rect width="160" height="260" rx="10" fill="url(#cardBg)" stroke="#251C58" stroke-width="1.5"/>
+    <rect x="12" y="14" width="46" height="18" rx="4" fill="#251C58"/>
+    <text x="18" y="27" font-family="'Space Mono', monospace" font-size="8.5" font-weight="700" fill="#FCE277">02</text>
+    <text x="12" y="52" font-family="'Space Mono', monospace" font-size="11" font-weight="700" fill="#FAC4A7">CANONICALIZE</text>
+    <text x="12" y="68" font-family="'Space Mono', monospace" font-size="8" fill="#D5B9F3">Storage &amp; Dedup</text>
+    <line x1="12" y1="80" x2="148" y2="80" stroke="#251C58" stroke-width="1"/>
+
+    <text x="12" y="104" font-family="'Space Mono', monospace" font-size="8" fill="#FFFFFF">• Title Normalizer</text>
+    <text x="12" y="122" font-family="'Space Mono', monospace" font-size="8" fill="#FFFFFF">• SHA-256 Hashes</text>
+    <text x="12" y="140" font-family="'Space Mono', monospace" font-size="8" fill="#FFFFFF">• Cross-ID Linkage</text>
+    <text x="12" y="158" font-family="'Space Mono', monospace" font-size="8" fill="#FFFFFF">• DuckDB / Parquet</text>
+
+    <rect x="12" y="218" width="136" height="28" rx="4" fill="#140C37" stroke="#251C58" stroke-width="1"/>
+    <text x="18" y="235" font-family="'Space Mono', monospace" font-size="7.5" fill="#FCE277">DEDUP ACCURACY: 99.8%</text>
+  </g>
+
+  <!-- Flow Connector 2 -> 3 -->
+  <line x1="388" y1="250" x2="410" y2="250" stroke="#4DF0D2" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Stage 3: Feature Engineering -->
+  <g transform="translate(412, 120)" filter="url(#boxGlow)">
+    <rect width="160" height="260" rx="10" fill="url(#cardBg)" stroke="#6E58A3" stroke-width="1.5"/>
+    <rect x="12" y="14" width="46" height="18" rx="4" fill="#6E58A3"/>
+    <text x="18" y="27" font-family="'Space Mono', monospace" font-size="8.5" font-weight="700" fill="#FFFFFF">03</text>
+    <text x="12" y="52" font-family="'Space Mono', monospace" font-size="11" font-weight="700" fill="#FAC4A7">VECTORIZER</text>
+    <text x="12" y="68" font-family="'Space Mono', monospace" font-size="8" fill="#D5B9F3">Hybrid Features</text>
+    <line x1="12" y1="80" x2="148" y2="80" stroke="#251C58" stroke-width="1"/>
+
+    <text x="12" y="104" font-family="'Space Mono', monospace" font-size="8" fill="#FFFFFF">• 5-Level Origin</text>
+    <text x="12" y="122" font-family="'Space Mono', monospace" font-size="8" fill="#FFFFFF">• Demographic One-Hot</text>
+    <text x="12" y="140" font-family="'Space Mono', monospace" font-size="8" fill="#FFFFFF">• Synopsis TF-IDF</text>
+    <text x="12" y="158" font-family="'Space Mono', monospace" font-size="8" fill="#FFFFFF">• Devotion Ratio</text>
+
+    <rect x="12" y="218" width="136" height="28" rx="4" fill="#140C37" stroke="#251C58" stroke-width="1"/>
+    <text x="18" y="235" font-family="'Space Mono', monospace" font-size="7.5" fill="#4DF0D2">VECTOR DIM: 64-D</text>
+  </g>
+
+  <!-- Flow Connector 3 -> 4 -->
+  <line x1="576" y1="250" x2="598" y2="250" stroke="#4DF0D2" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Stage 4: Clustering Engine -->
+  <g transform="translate(600, 120)" filter="url(#boxGlow)">
+    <rect width="160" height="260" rx="10" fill="url(#cardBg)" stroke="#CFA7AA" stroke-width="1.5"/>
+    <rect x="12" y="14" width="46" height="18" rx="4" fill="#251C58"/>
+    <text x="18" y="27" font-family="'Space Mono', monospace" font-size="8.5" font-weight="700" fill="#FAC4A7">04</text>
+    <text x="12" y="52" font-family="'Space Mono', monospace" font-size="11" font-weight="700" fill="#FAC4A7">CLUSTERING</text>
+    <text x="12" y="68" font-family="'Space Mono', monospace" font-size="8" fill="#D5B9F3">K-Means Engine</text>
+    <line x1="12" y1="80" x2="148" y2="80" stroke="#251C58" stroke-width="1"/>
+
+    <text x="12" y="104" font-family="'Space Mono', monospace" font-size="8" fill="#FFFFFF">• Silhouette Opt.</text>
+    <text x="12" y="122" font-family="'Space Mono', monospace" font-size="8" fill="#FFFFFF">• k = 18 Archetypes</text>
+    <text x="12" y="140" font-family="'Space Mono', monospace" font-size="8" fill="#FFFFFF">• Centroid Distance</text>
+    <text x="12" y="158" font-family="'Space Mono', monospace" font-size="8" fill="#FFFFFF">• Gaussian Mixture</text>
+
+    <rect x="12" y="218" width="136" height="28" rx="4" fill="#140C37" stroke="#251C58" stroke-width="1"/>
+    <text x="18" y="235" font-family="'Space Mono', monospace" font-size="7.5" fill="#FAC4A7">CLUSTERS: 18 SOLID</text>
+  </g>
+
+  <!-- Flow Connector 4 -> 5 -->
+  <line x1="764" y1="250" x2="786" y2="250" stroke="#4DF0D2" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Stage 5: Latent Space Projection -->
+  <g transform="translate(788, 120)" filter="url(#boxGlow)">
+    <rect width="144" height="260" rx="10" fill="url(#cardBg)" stroke="#C89E48" stroke-width="1.5"/>
+    <rect x="12" y="14" width="46" height="18" rx="4" fill="#C89E48"/>
+    <text x="18" y="27" font-family="'Space Mono', monospace" font-size="8.5" font-weight="700" fill="#140C37">05</text>
+    <text x="12" y="52" font-family="'Space Mono', monospace" font-size="11" font-weight="700" fill="#FAC4A7">PROJECTION</text>
+    <text x="12" y="68" font-family="'Space Mono', monospace" font-size="8" fill="#D5B9F3">t-SNE / Pyodide</text>
+    <line x1="12" y1="80" x2="132" y2="80" stroke="#251C58" stroke-width="1"/>
+
+    <text x="12" y="104" font-family="'Space Mono', monospace" font-size="8" fill="#FFFFFF">• 2D PCA &amp; t-SNE</text>
+    <text x="12" y="122" font-family="'Space Mono', monospace" font-size="8" fill="#FFFFFF">• Arrow IPC Stream</text>
+    <text x="12" y="140" font-family="'Space Mono', monospace" font-size="8" fill="#FFFFFF">• 1.14MB Brotli</text>
+    <text x="12" y="158" font-family="'Space Mono', monospace" font-size="8" fill="#FFFFFF">• In-Browser DAG</text>
+
+    <rect x="12" y="218" width="120" height="28" rx="4" fill="#140C37" stroke="#251C58" stroke-width="1"/>
+    <text x="18" y="235" font-family="'Space Mono', monospace" font-size="7.5" fill="#FCE59F">BUNDLE: 1.14 MB</text>
+  </g>
+
+  <!-- Bottom Telemetry Footer Strip -->
+  <g transform="translate(36, 405)">
+    <rect width="896" height="42" rx="8" fill="#140C37" stroke="#251C58" stroke-width="1"/>
+    <circle cx="20" cy="21" r="4" fill="#4DF0D2"/>
+    <text x="32" y="25" font-family="'Space Mono', monospace" font-size="9" fill="#D5B9F3">
+      PIPELINE EXECUTION: <tspan fill="#4DF0D2" font-weight="700">2.84s (BATCH)</tspan>  |  CLIENT LATENCY: <tspan fill="#FCE277" font-weight="700">&lt; 16ms (MARIMO REACTIVE DAG)</tspan>  |  MEMORY FOOTPRINT: <tspan fill="#FAC4A7" font-weight="700">46.8 MB</tspan>
+    </text>
+  </g>
+</svg>

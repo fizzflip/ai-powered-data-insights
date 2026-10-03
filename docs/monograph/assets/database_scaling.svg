@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 360" width="720" height="360">
+  <defs>
+    <linearGradient id="dbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1B1242"/>
+      <stop offset="100%" stop-color="#120A2E"/>
+    </linearGradient>
+    <linearGradient id="barGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4DF0D2"/>
+      <stop offset="100%" stop-color="#6E58A3"/>
+    </linearGradient>
+    <filter id="lineGlow">
+      <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#FCE277" flood-opacity="0.8"/>
+    </filter>
+  </defs>
+
+  <rect width="720" height="360" fill="url(#dbGrad)"/>
+
+  <!-- Header -->
+  <g transform="translate(36, 28)">
+    <text x="0" y="0" font-family="'Space Mono', monospace" font-size="9" font-weight="700" fill="#4DF0D2" letter-spacing="0.14em">DATABASE SCALING &amp; MEMORY PROFILE</text>
+    <text x="0" y="20" font-family="'Space Mono', monospace" font-size="14" font-weight="700" fill="#FAC4A7">Throughput vs. Memory Footprint</text>
+    <text x="0" y="34" font-family="'Space Mono', monospace" font-size="8.5" fill="#D5B9F3">Sub-linear memory growth via Apache Arrow Zero-Copy IPC</text>
+  </g>
+
+  <!-- Legend -->
+  <g transform="translate(480, 28)">
+    <rect x="0" y="4" width="12" height="8" rx="2" fill="url(#barGrad)"/>
+    <text x="18" y="12" font-family="'Space Mono', monospace" font-size="8" fill="#D5B9F3">Throughput (rec/sec)</text>
+    <line x1="120" y1="8" x2="136" y2="8" stroke="#FCE277" stroke-width="2"/>
+    <circle cx="128" cy="8" r="3" fill="#FCE277"/>
+    <text x="144" y="12" font-family="'Space Mono', monospace" font-size="8" fill="#FCE277">Memory (MB)</text>
+  </g>
+
+  <!-- Chart Area -->
+  <g transform="translate(60, 90)">
+    <!-- Horizontal Grid Lines -->
+    <g stroke="#251C58" stroke-width="1" stroke-dasharray="3,3" opacity="0.6">
+      <line x1="0" y1="0" x2="600" y2="0"/>
+      <line x1="0" y1="50" x2="600" y2="50"/>
+      <line x1="0" y1="100" x2="600" y2="100"/>
+      <line x1="0" y1="150" x2="600" y2="150"/>
+      <line x1="0" y1="200" x2="600" y2="200"/>
+    </g>
+
+    <!-- Y-Axis Left (Throughput) -->
+    <text x="-10" y="5" font-family="'Space Mono', monospace" font-size="7.5" fill="#D5B9F3" text-anchor="end">4000</text>
+    <text x="-10" y="55" font-family="'Space Mono', monospace" font-size="7.5" fill="#D5B9F3" text-anchor="end">3000</text>
+    <text x="-10" y="105" font-family="'Space Mono', monospace" font-size="7.5" fill="#D5B9F3" text-anchor="end">2000</text>
+    <text x="-10" y="155" font-family="'Space Mono', monospace" font-size="7.5" fill="#D5B9F3" text-anchor="end">1000</text>
+    <text x="-10" y="205" font-family="'Space Mono', monospace" font-size="7.5" fill="#D5B9F3" text-anchor="end">0</text>
+
+    <!-- Y-Axis Right (Memory MB) -->
+    <text x="610" y="5" font-family="'Space Mono', monospace" font-size="7.5" fill="#FCE277">100MB</text>
+    <text x="610" y="55" font-family="'Space Mono', monospace" font-size="7.5" fill="#FCE277">75MB</text>
+    <text x="610" y="105" font-family="'Space Mono', monospace" font-size="7.5" fill="#FCE277">50MB</text>
+    <text x="610" y="155" font-family="'Space Mono', monospace" font-size="7.5" fill="#FCE277">25MB</text>
+    <text x="610" y="205" font-family="'Space Mono', monospace" font-size="7.5" fill="#FCE277">0MB</text>
+
+    <!-- Bars (Throughput) -->
+    <!-- 1K: 3,850 rec/s -> height = 3850/4000 * 200 = 192.5px -->
+    <rect x="50" y="7.5" width="45" height="192.5" rx="4" fill="url(#barGrad)"/>
+    <text x="72" y="0" font-family="'Space Mono', monospace" font-size="7.5" font-weight="700" fill="#4DF0D2" text-anchor="middle">3,850</text>
+
+    <!-- 5K: 3,420 rec/s -> height = 3420/4000 * 200 = 171px -->
+    <rect x="190" y="29" width="45" height="171" rx="4" fill="url(#barGrad)"/>
+    <text x="212" y="22" font-family="'Space Mono', monospace" font-size="7.5" font-weight="700" fill="#4DF0D2" text-anchor="middle">3,420</text>
+
+    <!-- 15K: 2,980 rec/s -> height = 2980/4000 * 200 = 149px -->
+    <rect x="330" y="51" width="45" height="149" rx="4" fill="url(#barGrad)"/>
+    <text x="352" y="44" font-family="'Space Mono', monospace" font-size="7.5" font-weight="700" fill="#4DF0D2" text-anchor="middle">2,980</text>
+
+    <!-- 40K: 2,410 rec/s -> height = 2410/4000 * 200 = 120.5px -->
+    <rect x="470" y="79.5" width="45" height="120.5" rx="4" fill="url(#barGrad)"/>
+    <text x="492" y="72" font-family="'Space Mono', monospace" font-size="7.5" font-weight="700" fill="#4DF0D2" text-anchor="middle">2,410</text>
+
+    <!-- Memory Curve (Line Graph) -->
+    <!-- 1K: 8.2MB -> y = 200 - (8.2/100 * 200) = 183.6 -->
+    <!-- 5K: 24.5MB -> y = 200 - (24.5/100 * 200) = 151 -->
+    <!-- 15K: 46.8MB -> y = 200 - (46.8/100 * 200) = 106.4 -->
+    <!-- 40K: 98.4MB -> y = 200 - (98.4/100 * 200) = 3.2 -->
+    <path d="M 72.5,183.6 L 212.5,151 L 352.5,106.4 L 492.5,3.2" fill="none" stroke="#FCE277" stroke-width="2.5" filter="url(#lineGlow)"/>
+
+    <!-- Memory Points -->
+    <circle cx="72.5" cy="183.6" r="4.5" fill="#140C37" stroke="#FCE277" stroke-width="2"/>
+    <text x="86" y="180" font-family="'Space Mono', monospace" font-size="7.5" font-weight="700" fill="#FCE277">8.2MB</text>
+
+    <circle cx="212.5" cy="151" r="4.5" fill="#140C37" stroke="#FCE277" stroke-width="2"/>
+    <text x="226" y="148" font-family="'Space Mono', monospace" font-size="7.5" font-weight="700" fill="#FCE277">24.5MB</text>
+
+    <circle cx="352.5" cy="106.4" r="5" fill="#140C37" stroke="#FCE277" stroke-width="2.5"/>
+    <text x="366" y="103" font-family="'Space Mono', monospace" font-size="8" font-weight="700" fill="#FCE277">46.8MB ★</text>
+
+    <circle cx="492.5" cy="3.2" r="4.5" fill="#140C37" stroke="#FCE277" stroke-width="2"/>
+    <text x="440" y="16" font-family="'Space Mono', monospace" font-size="7.5" font-weight="700" fill="#FCE277">98.4MB</text>
+
+    <!-- X-Axis Labels -->
+    <text x="72.5" y="222" font-family="'Space Mono', monospace" font-size="8.5" fill="#FAC4A7" text-anchor="middle">1K Titles</text>
+    <text x="212.5" y="222" font-family="'Space Mono', monospace" font-size="8.5" fill="#FAC4A7" text-anchor="middle">5K Titles</text>
+    <text x="352.5" y="222" font-family="'Space Mono', monospace" font-size="8.5" font-weight="700" fill="#4DF0D2" text-anchor="middle">15K (Catalog)</text>
+    <text x="492.5" y="222" font-family="'Space Mono', monospace" font-size="8.5" fill="#FAC4A7" text-anchor="middle">40K (Max Scale)</text>
+  </g>
+</svg>

@@ -58,3 +58,7 @@ reports/CLAUDE.md
 outputs/
 scratch/
 *.zip
+
+# Misc
+design.md
+*.pdf

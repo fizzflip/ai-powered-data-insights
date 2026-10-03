@@ -1,0 +1,187 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 840" width="420" height="840">
+  <defs>
+    <linearGradient id="phoneBody" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#251C58"/>
+      <stop offset="100%" stop-color="#140C37"/>
+    </linearGradient>
+    <linearGradient id="cardGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#231952"/>
+      <stop offset="100%" stop-color="#160D38"/>
+    </linearGradient>
+    <filter id="phoneShadow" x="-10%" y="-5%" width="120%" height="115%">
+      <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#070314" flood-opacity="0.9"/>
+    </filter>
+  </defs>
+
+  <!-- Canvas Ground -->
+  <rect width="420" height="840" fill="#140C37"/>
+  <circle cx="210" cy="180" r="160" fill="#6E58A3" opacity="0.25"/>
+
+  <!-- Phone Chassis Container -->
+  <g filter="url(#phoneShadow)" transform="translate(20, 20)">
+    <!-- Outer Titanium Bezel -->
+    <rect width="380" height="800" rx="44" fill="url(#phoneBody)" stroke="#6E58A3" stroke-width="2"/>
+    <rect x="4" y="4" width="372" height="792" rx="40" fill="none" stroke="#D5B9F3" stroke-width="0.7" opacity="0.4"/>
+
+    <!-- Screen Surface -->
+    <rect x="8" y="8" width="364" height="784" rx="36" fill="#140C37"/>
+
+    <!-- Dynamic Island Cutout -->
+    <rect x="130" y="16" width="104" height="26" rx="13" fill="#0A061C"/>
+    <!-- Camera Lens & Sensor Dot -->
+    <circle cx="152" cy="29" r="5" fill="#1E1442"/>
+    <circle cx="152" cy="29" r="2.5" fill="#0C0720"/>
+    <circle cx="218" cy="29" r="3.5" fill="#4DF0D2" opacity="0.8"/>
+
+    <!-- Status Bar (09:41, Cellular, WiFi, Battery) -->
+    <text x="36" y="34" font-family="'Space Mono', monospace" font-size="12" font-weight="700" fill="#FAC4A7">09:41</text>
+    <g transform="translate(305, 24)" fill="#D5B9F3">
+      <!-- 5G Bars -->
+      <rect x="0" y="7" width="2" height="5" rx="0.5"/>
+      <rect x="4" y="5" width="2" height="7" rx="0.5"/>
+      <rect x="8" y="3" width="2" height="9" rx="0.5"/>
+      <rect x="12" y="0" width="2" height="12" rx="0.5"/>
+      <!-- WiFi Wave Arc -->
+      <path d="M19,10 A4,4 0 0,1 25,10 M17,7 A7,7 0 0,1 27,7" stroke="#D5B9F3" stroke-width="1.2" fill="none"/>
+      <!-- Battery Pill -->
+      <rect x="31" y="2" width="18" height="9" rx="2.5" fill="none" stroke="#D5B9F3" stroke-width="1.2"/>
+      <rect x="33" y="4" width="12" height="5" rx="1" fill="#4DF0D2"/>
+      <path d="M50,5 C50.5,5 50.8,5.4 50.8,6.5 C50.8,7.6 50.5,8 50,8 Z" fill="#D5B9F3"/>
+    </g>
+
+    <!-- App Header -->
+    <g transform="translate(24, 62)">
+      <text x="0" y="12" font-family="'Space Mono', monospace" font-size="8.5" font-weight="700" fill="#4DF0D2" letter-spacing="0.12em">COSMIC APOTHECARY // MOBILE</text>
+      <text x="0" y="32" font-family="'Space Mono', monospace" font-size="17" font-weight="700" fill="#FAC4A7">ANIME ARCHETYPES</text>
+      <text x="0" y="46" font-family="'Space Mono', monospace" font-size="9" fill="#D5B9F3">14,777 TITLES IN 18 LATENT CLUSTERS</text>
+      
+      <!-- Mini Decanter Stopper Icon -->
+      <g transform="translate(290, 8)">
+        <rect x="4" y="0" width="16" height="8" rx="2" fill="#C89E48"/>
+        <path d="M2,8 L22,8 L26,26 L0,26 Z" fill="#6E58A3" opacity="0.7"/>
+        <circle cx="12" cy="17" r="3" fill="#FCE277"/>
+      </g>
+    </g>
+
+    <!-- Search Input Bar -->
+    <g transform="translate(24, 126)">
+      <rect width="316" height="38" rx="10" fill="#1C1445" stroke="#251C58" stroke-width="1.2"/>
+      <circle cx="20" cy="19" r="5.5" fill="none" stroke="#D5B9F3" stroke-width="1.4"/>
+      <line x1="24" y1="23" x2="29" y2="28" stroke="#D5B9F3" stroke-width="1.4" stroke-linecap="round"/>
+      <text x="38" y="23" font-family="'Space Mono', monospace" font-size="10" fill="#CFA7AA">Search archetypes or anime...</text>
+    </g>
+
+    <!-- Filter Pill Chips -->
+    <g transform="translate(24, 178)">
+      <!-- All (Active) -->
+      <rect x="0" y="0" width="58" height="26" rx="13" fill="#6E58A3" stroke="#FCE277" stroke-width="1"/>
+      <text x="14" y="17" font-family="'Space Mono', monospace" font-size="9.5" font-weight="700" fill="#FFFFFF">All</text>
+      
+      <!-- JP Classic -->
+      <rect x="66" y="0" width="84" height="26" rx="13" fill="#1C1445" stroke="#251C58" stroke-width="1"/>
+      <text x="76" y="17" font-family="'Space Mono', monospace" font-size="9.5" fill="#D5B9F3">JP Classic</text>
+
+      <!-- Donghua -->
+      <rect x="158" y="0" width="76" height="26" rx="13" fill="#1C1445" stroke="#251C58" stroke-width="1"/>
+      <text x="170" y="17" font-family="'Space Mono', monospace" font-size="9.5" fill="#FAC4A7">Donghua</text>
+
+      <!-- Cyberpunk -->
+      <rect x="242" y="0" width="74" height="26" rx="13" fill="#1C1445" stroke="#251C58" stroke-width="1"/>
+      <text x="252" y="17" font-family="'Space Mono', monospace" font-size="9.5" fill="#4DF0D2">Cyber</text>
+    </g>
+
+    <!-- Card 1: Cowboy Bebop (Cluster #03) -->
+    <g transform="translate(24, 222)">
+      <rect width="316" height="152" rx="14" fill="url(#cardGrad1)" stroke="#6E58A3" stroke-width="1.5"/>
+      <rect x="14" y="14" width="138" height="18" rx="4" fill="#251C58"/>
+      <text x="20" y="26" font-family="'Space Mono', monospace" font-size="8.5" font-weight="700" fill="#FAC4A7">CLUSTER #03 // SPACE WESTERN</text>
+      <text x="14" y="52" font-family="'Space Mono', monospace" font-size="14" font-weight="700" fill="#FFFFFF">Cowboy Bebop</text>
+      <text x="14" y="68" font-family="'Space Mono', monospace" font-size="9" fill="#D5B9F3">Spike Spiegel • Bebop Crew • Jazz Noir</text>
+      
+      <!-- Rating and Stats -->
+      <g transform="translate(14, 84)">
+        <text x="0" y="12" font-family="'Space Mono', monospace" font-size="11" font-weight="700" fill="#FCE277">★ 8.75</text>
+        <text x="56" y="12" font-family="'Space Mono', monospace" font-size="8.5" fill="#CFA7AA">| 1,740,000 members</text>
+      </g>
+      <!-- Devotion Bar -->
+      <g transform="translate(14, 110)">
+        <text x="0" y="10" font-family="'Space Mono', monospace" font-size="8" fill="#D5B9F3">DEVOTION INDEX</text>
+        <rect x="90" y="2" width="140" height="9" rx="4.5" fill="#140C37"/>
+        <rect x="90" y="2" width="132" height="9" rx="4.5" fill="#4DF0D2"/>
+        <text x="240" y="10" font-family="'Space Mono', monospace" font-size="8" font-weight="700" fill="#4DF0D2">94.2%</text>
+      </g>
+      <!-- Origin Tag -->
+      <rect x="14" y="126" width="76" height="16" rx="4" fill="#140C37" stroke="#251C58" stroke-width="0.8"/>
+      <text x="20" y="138" font-family="'Space Mono', monospace" font-size="7.5" fill="#D5B9F3">[JP] Sunrise 1998</text>
+    </g>
+
+    <!-- Card 2: Steins;Gate (Cluster #07) -->
+    <g transform="translate(24, 390)">
+      <rect width="316" height="152" rx="14" fill="url(#cardGrad1)" stroke="#251C58" stroke-width="1.2"/>
+      <rect x="14" y="14" width="138" height="18" rx="4" fill="#251C58"/>
+      <text x="20" y="26" font-family="'Space Mono', monospace" font-size="8.5" font-weight="700" fill="#FCE277">CLUSTER #07 // TIME DILATION</text>
+      <text x="14" y="52" font-family="'Space Mono', monospace" font-size="14" font-weight="700" fill="#FFFFFF">Steins;Gate</text>
+      <text x="14" y="68" font-family="'Space Mono', monospace" font-size="9" fill="#D5B9F3">Okabe Rintarou • Future Gadget • World Lines</text>
+      
+      <g transform="translate(14, 84)">
+        <text x="0" y="12" font-family="'Space Mono', monospace" font-size="11" font-weight="700" fill="#FCE277">★ 9.08</text>
+        <text x="56" y="12" font-family="'Space Mono', monospace" font-size="8.5" fill="#CFA7AA">| 2,420,000 members</text>
+      </g>
+      <g transform="translate(14, 110)">
+        <text x="0" y="10" font-family="'Space Mono', monospace" font-size="8" fill="#D5B9F3">DEVOTION INDEX</text>
+        <rect x="90" y="2" width="140" height="9" rx="4.5" fill="#140C37"/>
+        <rect x="90" y="2" width="136" height="9" rx="4.5" fill="#FCE277"/>
+        <text x="240" y="10" font-family="'Space Mono', monospace" font-size="8" font-weight="700" fill="#FCE277">96.5%</text>
+      </g>
+      <rect x="14" y="126" width="84" height="16" rx="4" fill="#140C37" stroke="#251C58" stroke-width="0.8"/>
+      <text x="20" y="138" font-family="'Space Mono', monospace" font-size="7.5" fill="#D5B9F3">[JP] White Fox 2011</text>
+    </g>
+
+    <!-- Card 3: Ghost in the Shell (Cluster #11) -->
+    <g transform="translate(24, 558)">
+      <rect width="316" height="140" rx="14" fill="url(#cardGrad1)" stroke="#251C58" stroke-width="1.2"/>
+      <rect x="14" y="14" width="142" height="18" rx="4" fill="#251C58"/>
+      <text x="20" y="26" font-family="'Space Mono', monospace" font-size="8.5" font-weight="700" fill="#D5B9F3">CLUSTER #11 // CYBORG MIND</text>
+      <text x="14" y="52" font-family="'Space Mono', monospace" font-size="14" font-weight="700" fill="#FFFFFF">Ghost in the Shell: SAC</text>
+      <text x="14" y="68" font-family="'Space Mono', monospace" font-size="9" fill="#D5B9F3">Motoko Kusanagi • Tachikoma • Section 9</text>
+      
+      <g transform="translate(14, 84)">
+        <text x="0" y="12" font-family="'Space Mono', monospace" font-size="11" font-weight="700" fill="#FCE277">★ 8.68</text>
+        <text x="56" y="12" font-family="'Space Mono', monospace" font-size="8.5" fill="#CFA7AA">| 890,000 members</text>
+      </g>
+      <g transform="translate(14, 110)">
+        <text x="0" y="10" font-family="'Space Mono', monospace" font-size="8" fill="#D5B9F3">DEVOTION INDEX</text>
+        <rect x="90" y="2" width="140" height="9" rx="4.5" fill="#140C37"/>
+        <rect x="90" y="2" width="125" height="9" rx="4.5" fill="#D5B9F3"/>
+        <text x="240" y="10" font-family="'Space Mono', monospace" font-size="8" font-weight="700" fill="#D5B9F3">89.4%</text>
+      </g>
+    </g>
+
+    <!-- Bottom Nav Dock -->
+    <g transform="translate(8, 716)">
+      <path d="M0,0 L364,0 L364,36 A36,36 0 0,1 328,72 L36,72 A36,36 0 0,1 0,36 Z" fill="#100A2C"/>
+      <line x1="0" y1="0" x2="364" y2="0" stroke="#251C58" stroke-width="1"/>
+
+      <!-- Nav Items -->
+      <g transform="translate(40, 20)">
+        <circle cx="0" cy="0" r="3" fill="#FCE277"/>
+        <text x="-16" y="16" font-family="'Space Mono', monospace" font-size="8.5" font-weight="700" fill="#FCE277">Catalog</text>
+      </g>
+      <g transform="translate(130, 20)">
+        <circle cx="0" cy="0" r="3" fill="#6E58A3"/>
+        <text x="-14" y="16" font-family="'Space Mono', monospace" font-size="8.5" fill="#D5B9F3">Clusters</text>
+      </g>
+      <g transform="translate(225, 20)">
+        <circle cx="0" cy="0" r="3" fill="#6E58A3"/>
+        <text x="-10" y="16" font-family="'Space Mono', monospace" font-size="8.5" fill="#D5B9F3">Apothecary</text>
+      </g>
+      <g transform="translate(315, 20)">
+        <circle cx="0" cy="0" r="3" fill="#6E58A3"/>
+        <text x="-10" y="16" font-family="'Space Mono', monospace" font-size="8.5" fill="#D5B9F3">Profile</text>
+      </g>
+
+      <!-- Home Indicator Bar -->
+      <rect x="132" y="54" width="100" height="4" rx="2" fill="#E7D2F3" opacity="0.6"/>
+    </g>
+  </g>
+</svg>

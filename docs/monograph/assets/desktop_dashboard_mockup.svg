@@ -1,0 +1,276 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 640" width="1000" height="640">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#251C58"/>
+      <stop offset="50%" stop-color="#140C37"/>
+      <stop offset="100%" stop-color="#0E0725"/>
+    </linearGradient>
+    <linearGradient id="panelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1A123E"/>
+      <stop offset="100%" stop-color="#140C37"/>
+    </linearGradient>
+    <linearGradient id="btnActive" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6E58A3"/>
+      <stop offset="100%" stop-color="#8A72C4"/>
+    </linearGradient>
+    <filter id="windowShadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#05030E" flood-opacity="0.85"/>
+    </filter>
+    <filter id="cyanGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#4DF0D2" flood-opacity="0.9"/>
+    </filter>
+    <filter id="goldGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#FCE277" flood-opacity="0.8"/>
+    </filter>
+  </defs>
+
+  <!-- Ambient Backdrop -->
+  <rect width="1000" height="640" fill="#6E58A3"/>
+  <rect width="1000" height="640" fill="url(#bgGrad)" opacity="0.6"/>
+
+  <!-- Subtle Stardust -->
+  <g fill="#FCE277" opacity="0.35">
+    <circle cx="80" cy="90" r="1"/>
+    <circle cx="920" cy="110" r="1.5"/>
+    <circle cx="890" cy="580" r="1"/>
+    <circle cx="110" cy="550" r="1.2"/>
+    <polygon points="940,80 942,85 947,87 942,89 940,94 938,89 933,87 938,85" fill="#FCE277" opacity="0.7"/>
+    <polygon points="60,600 62,604 66,605 62,607 60,611 58,607 54,605 58,604" fill="#FCE277" opacity="0.6"/>
+  </g>
+
+  <!-- macOS Browser Window Shell -->
+  <g filter="url(#windowShadow)">
+    <rect x="40" y="30" width="920" height="580" rx="14" fill="#140C37" stroke="#6E58A3" stroke-width="1.5"/>
+    
+    <!-- Titlebar -->
+    <path d="M40,44 A14,14 0 0,1 54,30 L946,30 A14,14 0 0,1 960,44 L960,74 L40,74 Z" fill="#1C1344"/>
+    <line x1="40" y1="74" x2="960" y2="74" stroke="#251C58" stroke-width="1.5"/>
+
+    <!-- Traffic Lights -->
+    <circle cx="68" cy="52" r="6" fill="#FF5F56"/>
+    <circle cx="88" cy="52" r="6" fill="#FFBD2E"/>
+    <circle cx="108" cy="52" r="6" fill="#27C93F"/>
+
+    <!-- Address Pill -->
+    <rect x="220" y="41" width="560" height="24" rx="12" fill="#140C37" stroke="#251C58" stroke-width="1"/>
+    <g transform="translate(232, 47)">
+      <path d="M4,1.5 A2.5,2.5 0 0,0 1.5,4 L1.5,5 L6.5,5 L6.5,4 A2.5,2.5 0 0,0 4,1.5 Z M0.5,5 L7.5,5 L7.5,11 L0.5,11 Z" fill="#4DF0D2"/>
+    </g>
+    <text x="246" y="57" font-family="'Space Mono', monospace" font-size="11" fill="#D5B9F3" letter-spacing="0.04em">https://insights.anime.ai/marimo-dag</text>
+    <rect x="715" y="46" width="54" height="14" rx="7" fill="#251C58"/>
+    <text x="722" y="56" font-family="'Space Mono', monospace" font-size="8" font-weight="700" fill="#4DF0D2">DAG: OK</text>
+  </g>
+
+  <!-- Left Sidebar (Marimo Reactive Controls) -->
+  <g transform="translate(40, 74)">
+    <rect x="0" y="0" width="260" height="536" fill="#18103A"/>
+    <line x1="260" y1="0" x2="260" y2="536" stroke="#251C58" stroke-width="1.5"/>
+
+    <!-- Sidebar Header -->
+    <text x="22" y="32" font-family="'Space Mono', monospace" font-size="10" font-weight="700" fill="#FAC4A7" letter-spacing="0.1em">MARIMO REACTIVE DAG</text>
+    <circle cx="236" cy="28" r="4" fill="#4DF0D2" filter="url(#cyanGlow)"/>
+
+    <!-- Origin Filter Pills -->
+    <text x="22" y="66" font-family="'Space Mono', monospace" font-size="9" fill="#D5B9F3">ORIGIN FILTER</text>
+    <rect x="20" y="76" width="220" height="32" rx="8" fill="#140C37" stroke="#251C58" stroke-width="1"/>
+    <rect x="22" y="78" width="106" height="28" rx="6" fill="url(#btnActive)"/>
+    <text x="50" y="96" font-family="'Space Mono', monospace" font-size="10" font-weight="700" fill="#FFFFFF">JP ANIME</text>
+    <text x="146" y="96" font-family="'Space Mono', monospace" font-size="10" fill="#CFA7AA">GLOBAL / ONA</text>
+
+    <!-- Cluster Count Slider (k = 18) -->
+    <text x="22" y="142" font-family="'Space Mono', monospace" font-size="9" fill="#D5B9F3">ARCHETYPE CLUSTERS (k)</text>
+    <rect x="186" y="132" width="54" height="16" rx="4" fill="#251C58"/>
+    <text x="194" y="144" font-family="'Space Mono', monospace" font-size="9" font-weight="700" fill="#FCE277">k = 18</text>
+    <!-- Slider Track -->
+    <rect x="22" y="156" width="218" height="6" rx="3" fill="#140C37"/>
+    <rect x="22" y="156" width="150" height="6" rx="3" fill="#6E58A3"/>
+    <circle cx="172" cy="159" r="8" fill="#140C37" stroke="#FCE277" stroke-width="2" filter="url(#goldGlow)"/>
+
+    <!-- MAL Score Threshold Slider -->
+    <text x="22" y="202" font-family="'Space Mono', monospace" font-size="9" fill="#D5B9F3">MIN MAL SCORE</text>
+    <rect x="186" y="192" width="54" height="16" rx="4" fill="#251C58"/>
+    <text x="194" y="204" font-family="'Space Mono', monospace" font-size="9" font-weight="700" fill="#4DF0D2">≥ 7.50</text>
+    <rect x="22" y="216" width="218" height="6" rx="3" fill="#140C37"/>
+    <rect x="22" y="216" width="138" height="6" rx="3" fill="#4DF0D2"/>
+    <circle cx="160" cy="219" r="8" fill="#140C37" stroke="#4DF0D2" stroke-width="2" filter="url(#cyanGlow)"/>
+
+    <!-- Popularity Rank Brush -->
+    <text x="22" y="262" font-family="'Space Mono', monospace" font-size="9" fill="#D5B9F3">POPULARITY BRUSH</text>
+    <g transform="translate(22, 276)">
+      <rect width="218" height="42" fill="#140C37" rx="4" stroke="#251C58" stroke-width="1"/>
+      <!-- Histogram Bars -->
+      <rect x="8" y="24" width="8" height="14" fill="#6E58A3" opacity="0.4"/>
+      <rect x="20" y="16" width="8" height="22" fill="#6E58A3" opacity="0.4"/>
+      <rect x="32" y="10" width="8" height="28" fill="#6E58A3" opacity="0.4"/>
+      <!-- Active Brush Selection -->
+      <rect x="44" y="6" width="8" height="32" fill="#FAC4A7"/>
+      <rect x="56" y="4" width="8" height="34" fill="#FAC4A7"/>
+      <rect x="68" y="8" width="8" height="30" fill="#FAC4A7"/>
+      <rect x="80" y="12" width="8" height="26" fill="#FAC4A7"/>
+      <rect x="92" y="18" width="8" height="20" fill="#FAC4A7"/>
+      <rect x="104" y="22" width="8" height="16" fill="#FAC4A7"/>
+      <rect x="116" y="26" width="8" height="12" fill="#6E58A3" opacity="0.4"/>
+      <rect x="128" y="30" width="8" height="8" fill="#6E58A3" opacity="0.4"/>
+      <rect x="140" y="32" width="8" height="6" fill="#6E58A3" opacity="0.4"/>
+      <!-- Brush Handles -->
+      <rect x="42" y="2" width="60" height="38" fill="none" stroke="#FCE277" stroke-dasharray="2,2"/>
+    </g>
+
+    <!-- DAG Cell Status Card -->
+    <g transform="translate(20, 360)">
+      <rect width="220" height="144" rx="8" fill="#140C37" stroke="#251C58" stroke-width="1"/>
+      <text x="14" y="24" font-family="'Space Mono', monospace" font-size="9" font-weight="700" fill="#FAC4A7">DAG EXECUTION TELEMETRY</text>
+      <text x="14" y="46" font-family="'Space Mono', monospace" font-size="8.5" fill="#D5B9F3">● Cell 01 (Ingest): <tspan fill="#4DF0D2">cached</tspan></text>
+      <text x="14" y="66" font-family="'Space Mono', monospace" font-size="8.5" fill="#D5B9F3">● Cell 04 (Normalize): <tspan fill="#4DF0D2">1.2ms</tspan></text>
+      <text x="14" y="86" font-family="'Space Mono', monospace" font-size="8.5" fill="#D5B9F3">● Cell 09 (K-Means): <tspan fill="#4DF0D2">6.4ms</tspan></text>
+      <text x="14" y="106" font-family="'Space Mono', monospace" font-size="8.5" fill="#D5B9F3">● Cell 14 (t-SNE 2D): <tspan fill="#FCE277">11.8ms</tspan></text>
+      <line x1="14" y1="118" x2="206" y2="118" stroke="#251C58" stroke-width="1"/>
+      <text x="14" y="132" font-family="'Space Mono', monospace" font-size="8" fill="#CFA7AA">Active Records: 14,777 / 14,777</text>
+    </g>
+  </g>
+
+  <!-- Top Center Visualization Panel (2D PCA / t-SNE Scatter) -->
+  <g transform="translate(320, 94)">
+    <rect width="620" height="260" rx="8" fill="url(#panelGrad)" stroke="#251C58" stroke-width="1.5"/>
+    
+    <!-- Panel Header -->
+    <text x="18" y="22" font-family="'Space Mono', monospace" font-size="10" font-weight="700" fill="#FAC4A7">DIMENSIONALITY REDUCTION // 2D PCA &amp; t-SNE LATENT TOPOLOGY</text>
+    <g transform="translate(420, 14)">
+      <circle cx="0" cy="0" r="3.5" fill="#4DF0D2"/>
+      <text x="7" y="3" font-family="'Space Mono', monospace" font-size="8" fill="#D5B9F3">Space West.</text>
+      <circle cx="75" cy="0" r="3.5" fill="#FCE277"/>
+      <text x="82" y="3" font-family="'Space Mono', monospace" font-size="8" fill="#D5B9F3">Time Dil.</text>
+      <circle cx="140" cy="0" r="3.5" fill="#D5B9F3"/>
+      <text x="147" y="3" font-family="'Space Mono', monospace" font-size="8" fill="#D5B9F3">Cyberpunk</text>
+    </g>
+
+    <!-- Coordinate Grid -->
+    <g stroke="#251C58" stroke-width="1" stroke-dasharray="3,3" opacity="0.7">
+      <line x1="30" y1="50" x2="590" y2="50"/>
+      <line x1="30" y1="100" x2="590" y2="100"/>
+      <line x1="30" y1="150" x2="590" y2="150"/>
+      <line x1="30" y1="200" x2="590" y2="200"/>
+      <line x1="120" y1="40" x2="120" y2="230"/>
+      <line x1="240" y1="40" x2="240" y2="230"/>
+      <line x1="360" y1="40" x2="360" y2="230"/>
+      <line x1="480" y1="40" x2="480" y2="230"/>
+    </g>
+    <!-- Axis Labels -->
+    <text x="540" y="244" font-family="'Space Mono', monospace" font-size="8" fill="#6E58A3">t-SNE DIM 1 →</text>
+    <text x="32" y="44" font-family="'Space Mono', monospace" font-size="8" fill="#6E58A3">↑ t-SNE DIM 2</text>
+
+    <!-- Cluster Clouds -->
+    <!-- Cluster #03: Space Western (Cyan #4DF0D2) -->
+    <g fill="#4DF0D2" opacity="0.65">
+      <circle cx="160" cy="90" r="2.5"/><circle cx="172" cy="84" r="2"/><circle cx="180" cy="98" r="3"/><circle cx="150" cy="105" r="2"/>
+      <circle cx="195" cy="110" r="2.5"/><circle cx="210" cy="85" r="2"/><circle cx="165" cy="118" r="2"/><circle cx="185" cy="125" r="3"/>
+    </g>
+    <!-- Centroid #03 -->
+    <polygon points="175,95 181,102 175,109 169,102" fill="#4DF0D2" filter="url(#cyanGlow)"/>
+
+    <!-- Cluster #07: Time Dilation (Star Gold #FCE277) -->
+    <g fill="#FCE277" opacity="0.65">
+      <circle cx="380" cy="75" r="2"/><circle cx="395" cy="65" r="3"/><circle cx="410" cy="82" r="2.5"/><circle cx="370" cy="95" r="2"/>
+      <circle cx="425" cy="70" r="2"/><circle cx="385" cy="105" r="2.5"/><circle cx="440" cy="90" r="3"/><circle cx="400" cy="115" r="2"/>
+    </g>
+    <!-- Centroid #07 -->
+    <polygon points="400,82 406,89 400,96 394,89" fill="#FCE277" filter="url(#goldGlow)"/>
+
+    <!-- Cluster #11: Cyberpunk / Philosophy (Lilac Quartz #D5B9F3) -->
+    <g fill="#D5B9F3" opacity="0.65">
+      <circle cx="470" cy="165" r="2.5"/><circle cx="485" cy="155" r="2"/><circle cx="505" cy="170" r="3"/><circle cx="460" cy="180" r="2"/>
+      <circle cx="520" cy="150" r="2.5"/><circle cx="490" cy="190" r="2"/><circle cx="535" cy="175" r="3"/><circle cx="510" cy="195" r="2"/>
+    </g>
+    <!-- Centroid #11 -->
+    <polygon points="495,170 501,177 495,184 489,177" fill="#D5B9F3"/>
+
+    <!-- Cluster #14: Slice of Life / Iyashikei (Terracotta Rose #CFA7AA) -->
+    <g fill="#CFA7AA" opacity="0.65">
+      <circle cx="270" cy="175" r="2"/><circle cx="285" cy="160" r="3"/><circle cx="300" cy="182" r="2.5"/><circle cx="260" cy="195" r="2"/>
+      <circle cx="315" cy="168" r="2.5"/><circle cx="280" cy="205" r="2"/><circle cx="330" cy="190" r="3"/><circle cx="295" cy="215" r="2"/>
+    </g>
+
+    <!-- Hovered Node: Cowboy Bebop -->
+    <circle cx="180" cy="98" r="7" fill="none" stroke="#4DF0D2" stroke-width="1.5" stroke-dasharray="2,2"/>
+    <circle cx="180" cy="98" r="4" fill="#FFFFFF"/>
+
+    <!-- Tooltip Badge -->
+    <g transform="translate(195, 75)" filter="url(#windowShadow)">
+      <rect width="180" height="58" rx="6" fill="#140C37" stroke="#4DF0D2" stroke-width="1.2"/>
+      <text x="10" y="16" font-family="'Space Mono', monospace" font-size="9" font-weight="700" fill="#FAC4A7">COWBOY BEBOP (1998)</text>
+      <text x="10" y="32" font-family="'Space Mono', monospace" font-size="8" fill="#D5B9F3">Cluster #03: Space Western</text>
+      <text x="10" y="47" font-family="'Space Mono', monospace" font-size="8" fill="#4DF0D2">Score: 8.75 | Devotion: 94.2%</text>
+    </g>
+  </g>
+
+  <!-- Center Bottom Data Inspector Table -->
+  <g transform="translate(320, 368)">
+    <rect width="620" height="230" rx="8" fill="url(#panelGrad)" stroke="#251C58" stroke-width="1.5"/>
+    
+    <!-- Table Header Bar -->
+    <text x="18" y="24" font-family="'Space Mono', monospace" font-size="10" font-weight="700" fill="#FAC4A7">DATA INSPECTOR // POLARS DATAFRAME REACTIVE STREAM</text>
+    <rect x="520" y="12" width="86" height="18" rx="4" fill="#251C58"/>
+    <text x="528" y="24" font-family="'Space Mono', monospace" font-size="8" fill="#4DF0D2">4 of 14,777 rows</text>
+
+    <!-- Column Headers -->
+    <rect x="14" y="36" width="592" height="24" fill="#140C37"/>
+    <text x="24" y="52" font-family="'Space Mono', monospace" font-size="8.5" font-weight="700" fill="#D5B9F3">TITLE</text>
+    <text x="210" y="52" font-family="'Space Mono', monospace" font-size="8.5" font-weight="700" fill="#D5B9F3">ARCHETYPE CLUSTER</text>
+    <text x="360" y="52" font-family="'Space Mono', monospace" font-size="8.5" font-weight="700" fill="#D5B9F3">SCORE</text>
+    <text x="440" y="52" font-family="'Space Mono', monospace" font-size="8.5" font-weight="700" fill="#D5B9F3">DEVOTION</text>
+    <text x="540" y="52" font-family="'Space Mono', monospace" font-size="8.5" font-weight="700" fill="#D5B9F3">ORIGIN</text>
+
+    <!-- Row 1: Cowboy Bebop -->
+    <g transform="translate(14, 62)">
+      <rect width="592" height="36" fill="#1C1445" opacity="0.6"/>
+      <text x="10" y="22" font-family="'Space Mono', monospace" font-size="9" font-weight="700" fill="#FFFFFF">Cowboy Bebop</text>
+      <rect x="194" y="9" width="112" height="18" rx="4" fill="#251C58"/>
+      <text x="200" y="22" font-family="'Space Mono', monospace" font-size="8" fill="#4DF0D2">#03 Space Western</text>
+      <text x="348" y="22" font-family="'Space Mono', monospace" font-size="9" font-weight="700" fill="#FCE277">★ 8.75</text>
+      <!-- Devotion Bar -->
+      <rect x="426" y="14" width="70" height="8" rx="4" fill="#140C37"/>
+      <rect x="426" y="14" width="66" height="8" rx="4" fill="#4DF0D2"/>
+      <text x="502" y="22" font-family="'Space Mono', monospace" font-size="8" fill="#4DF0D2">94%</text>
+      <text x="526" y="22" font-family="'Space Mono', monospace" font-size="8.5" fill="#D5B9F3">[JP] Sunrise</text>
+    </g>
+
+    <!-- Row 2: Steins;Gate -->
+    <g transform="translate(14, 100)">
+      <rect width="592" height="36" fill="#140C37" opacity="0.6"/>
+      <text x="10" y="22" font-family="'Space Mono', monospace" font-size="9" font-weight="700" fill="#FFFFFF">Steins;Gate</text>
+      <rect x="194" y="9" width="112" height="18" rx="4" fill="#251C58"/>
+      <text x="200" y="22" font-family="'Space Mono', monospace" font-size="8" fill="#FCE277">#07 Time Dilation</text>
+      <text x="348" y="22" font-family="'Space Mono', monospace" font-size="9" font-weight="700" fill="#FCE277">★ 9.08</text>
+      <rect x="426" y="14" width="70" height="8" rx="4" fill="#140C37"/>
+      <rect x="426" y="14" width="68" height="8" rx="4" fill="#FCE277"/>
+      <text x="502" y="22" font-family="'Space Mono', monospace" font-size="8" fill="#FCE277">97%</text>
+      <text x="526" y="22" font-family="'Space Mono', monospace" font-size="8.5" fill="#D5B9F3">[JP] White Fox</text>
+    </g>
+
+    <!-- Row 3: Ghost in the Shell -->
+    <g transform="translate(14, 138)">
+      <rect width="592" height="36" fill="#1C1445" opacity="0.6"/>
+      <text x="10" y="22" font-family="'Space Mono', monospace" font-size="9" font-weight="700" fill="#FFFFFF">Ghost in the Shell</text>
+      <rect x="194" y="9" width="112" height="18" rx="4" fill="#251C58"/>
+      <text x="200" y="22" font-family="'Space Mono', monospace" font-size="8" fill="#D5B9F3">#11 Cyberpunk</text>
+      <text x="348" y="22" font-family="'Space Mono', monospace" font-size="9" font-weight="700" fill="#FCE277">★ 8.68</text>
+      <rect x="426" y="14" width="70" height="8" rx="4" fill="#140C37"/>
+      <rect x="426" y="14" width="62" height="8" rx="4" fill="#D5B9F3"/>
+      <text x="502" y="22" font-family="'Space Mono', monospace" font-size="8" fill="#D5B9F3">89%</text>
+      <text x="526" y="22" font-family="'Space Mono', monospace" font-size="8.5" fill="#D5B9F3">[JP] Prod. I.G</text>
+    </g>
+
+    <!-- Row 4: The King's Avatar -->
+    <g transform="translate(14, 176)">
+      <rect width="592" height="36" fill="#140C37" opacity="0.6"/>
+      <text x="10" y="22" font-family="'Space Mono', monospace" font-size="9" font-weight="700" fill="#FFFFFF">The King's Avatar</text>
+      <rect x="194" y="9" width="112" height="18" rx="4" fill="#251C58"/>
+      <text x="200" y="22" font-family="'Space Mono', monospace" font-size="8" fill="#CFA7AA">#15 Esports Strat</text>
+      <text x="348" y="22" font-family="'Space Mono', monospace" font-size="9" font-weight="700" fill="#FCE277">★ 8.21</text>
+      <rect x="426" y="14" width="70" height="8" rx="4" fill="#140C37"/>
+      <rect x="426" y="14" width="55" height="8" rx="4" fill="#CFA7AA"/>
+      <text x="502" y="22" font-family="'Space Mono', monospace" font-size="8" fill="#CFA7AA">78%</text>
+      <text x="526" y="22" font-family="'Space Mono', monospace" font-size="8.5" fill="#FAC4A7">[CN] B.CMAY</text>
+    </g>
+  </g>
+</svg>

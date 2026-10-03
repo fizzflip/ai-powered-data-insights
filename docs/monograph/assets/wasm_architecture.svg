@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 360" width="820" height="360">
+  <defs>
+    <linearGradient id="wasmBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1A113E"/>
+      <stop offset="100%" stop-color="#0F0826"/>
+    </linearGradient>
+    <marker id="wasmArrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#4DF0D2"/>
+    </marker>
+  </defs>
+
+  <rect width="820" height="360" fill="url(#wasmBg)"/>
+
+  <!-- Header -->
+  <g transform="translate(36, 28)">
+    <text x="0" y="0" font-family="'Space Mono', monospace" font-size="9" font-weight="700" fill="#4DF0D2" letter-spacing="0.14em">SERVERLESS WASM ARCHITECTURE</text>
+    <text x="0" y="20" font-family="'Space Mono', monospace" font-size="14" font-weight="700" fill="#FAC4A7">Zero-Backend Client-Side Runtime</text>
+    <text x="0" y="34" font-family="'Space Mono', monospace" font-size="8.5" fill="#D5B9F3">1.14 MB Brotli compressed bundle executing locally inside browser sandbox</text>
+  </g>
+
+  <!-- Node 1: Edge CDN -->
+  <g transform="translate(36, 95)">
+    <rect width="130" height="180" rx="8" fill="#1C1445" stroke="#6E58A3" stroke-width="1.2"/>
+    <rect x="10" y="10" width="36" height="16" rx="3" fill="#6E58A3"/>
+    <text x="14" y="22" font-family="'Space Mono', monospace" font-size="8" font-weight="700" fill="#FFFFFF">EDGE</text>
+    <text x="10" y="44" font-family="'Space Mono', monospace" font-size="9.5" font-weight="700" fill="#FAC4A7">Netlify CDN</text>
+    <text x="10" y="60" font-family="'Space Mono', monospace" font-size="7.5" fill="#D5B9F3">• Global POPs</text>
+    <text x="10" y="76" font-family="'Space Mono', monospace" font-size="7.5" fill="#D5B9F3">• HTTP/3 Wire</text>
+    <text x="10" y="92" font-family="'Space Mono', monospace" font-size="7.5" fill="#D5B9F3">• Static Host</text>
+    <rect x="8" y="138" width="114" height="26" rx="4" fill="#140C37"/>
+    <text x="14" y="155" font-family="'Space Mono', monospace" font-size="7.5" fill="#4DF0D2">LATENCY: 12ms</text>
+  </g>
+
+  <!-- Flow 1 -> 2 -->
+  <line x1="166" y1="185" x2="186" y2="185" stroke="#4DF0D2" stroke-width="1.8" marker-end="url(#wasmArrow)"/>
+
+  <!-- Node 2: Compressed Artifact -->
+  <g transform="translate(190, 95)">
+    <rect width="130" height="180" rx="8" fill="#1C1445" stroke="#251C58" stroke-width="1.2"/>
+    <rect x="10" y="10" width="46" height="16" rx="3" fill="#251C58"/>
+    <text x="14" y="22" font-family="'Space Mono', monospace" font-size="8" font-weight="700" fill="#FCE277">DATA</text>
+    <text x="10" y="44" font-family="'Space Mono', monospace" font-size="9.5" font-weight="700" fill="#FAC4A7">Artifact</text>
+    <text x="10" y="60" font-family="'Space Mono', monospace" font-size="7.5" fill="#D5B9F3">• 1.14MB Brotli</text>
+    <text x="10" y="76" font-family="'Space Mono', monospace" font-size="7.5" fill="#D5B9F3">• Parquet Cols</text>
+    <text x="10" y="92" font-family="'Space Mono', monospace" font-size="7.5" fill="#D5B9F3">• Pre-PCA 2D</text>
+    <rect x="8" y="138" width="114" height="26" rx="4" fill="#140C37"/>
+    <text x="14" y="155" font-family="'Space Mono', monospace" font-size="7.5" fill="#FCE277">SIZE: 1.14 MB</text>
+  </g>
+
+  <!-- Flow 2 -> 3 -->
+  <line x1="320" y1="185" x2="340" y2="185" stroke="#4DF0D2" stroke-width="1.8" marker-end="url(#wasmArrow)"/>
+
+  <!-- Node 3: Pyodide Runtime -->
+  <g transform="translate(344, 95)">
+    <rect width="140" height="180" rx="8" fill="#1C1445" stroke="#4DF0D2" stroke-width="1.2"/>
+    <rect x="10" y="10" width="46" height="16" rx="3" fill="#4DF0D2"/>
+    <text x="14" y="22" font-family="'Space Mono', monospace" font-size="8" font-weight="700" fill="#140C37">WASM</text>
+    <text x="10" y="44" font-family="'Space Mono', monospace" font-size="9.5" font-weight="700" fill="#FAC4A7">Pyodide WebAssembly</text>
+    <text x="10" y="60" font-family="'Space Mono', monospace" font-size="7.5" fill="#D5B9F3">• Python 3.11</text>
+    <text x="10" y="76" font-family="'Space Mono', monospace" font-size="7.5" fill="#D5B9F3">• NumPy / SciPy</text>
+    <text x="10" y="92" font-family="'Space Mono', monospace" font-size="7.5" fill="#D5B9F3">• Zero-Copy IPC</text>
+    <rect x="8" y="138" width="124" height="26" rx="4" fill="#140C37"/>
+    <text x="14" y="155" font-family="'Space Mono', monospace" font-size="7.5" fill="#4DF0D2">SANDBOX: SAFE</text>
+  </g>
+
+  <!-- Flow 3 -> 4 -->
+  <line x1="484" y1="185" x2="504" y2="185" stroke="#4DF0D2" stroke-width="1.8" marker-end="url(#wasmArrow)"/>
+
+  <!-- Node 4: Marimo Reactive DAG -->
+  <g transform="translate(508, 95)">
+    <rect width="130" height="180" rx="8" fill="#1C1445" stroke="#6E58A3" stroke-width="1.2"/>
+    <rect x="10" y="10" width="40" height="16" rx="3" fill="#6E58A3"/>
+    <text x="14" y="22" font-family="'Space Mono', monospace" font-size="8" font-weight="700" fill="#FFFFFF">DAG</text>
+    <text x="10" y="44" font-family="'Space Mono', monospace" font-size="9.5" font-weight="700" fill="#FAC4A7">Marimo State</text>
+    <text x="10" y="60" font-family="'Space Mono', monospace" font-size="7.5" fill="#D5B9F3">• Reactive Cells</text>
+    <text x="10" y="76" font-family="'Space Mono', monospace" font-size="7.5" fill="#D5B9F3">• Dynamic Filt.</text>
+    <text x="10" y="92" font-family="'Space Mono', monospace" font-size="7.5" fill="#D5B9F3">• 0ms Roundtrip</text>
+    <rect x="8" y="138" width="114" height="26" rx="4" fill="#140C37"/>
+    <text x="14" y="155" font-family="'Space Mono', monospace" font-size="7.5" fill="#FAC4A7">0ms NETWORK</text>
+  </g>
+
+  <!-- Flow 4 -> 5 -->
+  <line x1="638" y1="185" x2="658" y2="185" stroke="#4DF0D2" stroke-width="1.8" marker-end="url(#wasmArrow)"/>
+
+  <!-- Node 5: Browser Canvas / SVG -->
+  <g transform="translate(662, 95)">
+    <rect width="124" height="180" rx="8" fill="#1C1445" stroke="#C89E48" stroke-width="1.2"/>
+    <rect x="10" y="10" width="40" height="16" rx="3" fill="#C89E48"/>
+    <text x="14" y="22" font-family="'Space Mono', monospace" font-size="8" font-weight="700" fill="#140C37">DOM</text>
+    <text x="10" y="44" font-family="'Space Mono', monospace" font-size="9.5" font-weight="700" fill="#FAC4A7">UI Render</text>
+    <text x="10" y="60" font-family="'Space Mono', monospace" font-size="7.5" fill="#D5B9F3">• SVG Vector</text>
+    <text x="10" y="76" font-family="'Space Mono', monospace" font-size="7.5" fill="#D5B9F3">• Canvas Scatter</text>
+    <text x="10" y="92" font-family="'Space Mono', monospace" font-size="7.5" fill="#D5B9F3">• 60 FPS Smooth</text>
+    <rect x="8" y="138" width="108" height="26" rx="4" fill="#140C37"/>
+    <text x="14" y="155" font-family="'Space Mono', monospace" font-size="7.5" fill="#FCE59F">FPS: 60 SOLID</text>
+  </g>
+
+  <!-- Bottom Architecture Pill -->
+  <g transform="translate(36, 296)">
+    <rect width="750" height="36" rx="6" fill="#140C37" stroke="#251C58" stroke-width="1"/>
+    <text x="20" y="22" font-family="'Space Mono', monospace" font-size="8" fill="#D5B9F3">
+      SECURITY MODEL: Sandboxed WebAssembly • Zero server data retention • Offline resilient • Instant cold-start
+    </text>
+  </g>
+</svg>
